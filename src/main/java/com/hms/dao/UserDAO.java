@@ -1,4 +1,4 @@
-package com.hms;
+package com.hms.dao;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
