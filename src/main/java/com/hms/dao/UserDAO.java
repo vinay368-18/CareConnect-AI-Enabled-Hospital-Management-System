@@ -18,7 +18,13 @@ public class UserDAO {
 
             ResultSet rs = ps.executeQuery();
 
-            return rs.next();
+            if (rs.next()) {
+                System.out.println("USER FOUND");
+                return true;
+            } else {
+                System.out.println("USER NOT FOUND");
+                return false;
+            }
 		}catch (Exception e) {
             e.printStackTrace();
             return false;
