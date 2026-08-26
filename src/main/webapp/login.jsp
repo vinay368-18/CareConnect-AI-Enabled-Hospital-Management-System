@@ -3,11 +3,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CareConnect | Login</title>
-<link rel="stylesheet"
-	href="${pageContext.request.contextPath}/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>CareConnect | Login</title>
+
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/style.css">
 </head>
 <body>
 	<div class="login-page">
@@ -64,8 +65,7 @@
 					<p>Sign in to access your hospital management dashboard.</p>
 				</div>
 
-				<form action="${pageContext.request.contextPath}/login"
-					method="post">
+				<form action="dashboard.jsp" method="get">
 					<div class="form-group">
 						<label for="username">Username</label> <input id="username"
 							name="username" type="text" placeholder="Enter your username"
