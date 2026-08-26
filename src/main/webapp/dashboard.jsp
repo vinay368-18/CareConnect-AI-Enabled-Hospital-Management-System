@@ -367,13 +367,98 @@
 </main>
 
 <script>
-    document.getElementById("dashboardSearch").addEventListener("input", function () {
-        const query = this.value.toLowerCase().trim();
+<script>
+document.addEventListener("DOMContentLoaded", function () {
 
-        document.querySelectorAll(".appointment").forEach(function (row) {
-            row.hidden = !row.textContent.toLowerCase().includes(query);
+    /* Search appointments */
+    const searchInput = document.getElementById("dashboardSearch");
+
+    if (searchInput) {
+        searchInput.addEventListener("input", function () {
+            const query = this.value.toLowerCase().trim();
+
+            document.querySelectorAll(".appointment").forEach(function (row) {
+                const matches = row.textContent.toLowerCase().includes(query);
+                row.hidden = !matches;
+            });
         });
+    }
+
+    /* Press / to focus search */
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "/" && document.activeElement !== searchInput) {
+            event.preventDefault();
+            searchInput.focus();
+        }
     });
+
+    /* Animate statistic numbers */
+    document.querySelectorAll(".stat-number").forEach(function (counter) {
+        const target = Number(counter.textContent.trim());
+
+        if (Number.isNaN(target)) {
+            return;
+        }
+
+        const duration = 1000;
+        const startTime = performance.now();
+
+        function updateCounter(currentTime) {
+            const progress = Math.min((currentTime - startTime) / duration, 1);
+            const smoothProgress = 1 - Math.pow(1 - progress, 3);
+
+            counter.textContent = Math.floor(target * smoothProgress);
+
+            if (progress < 1) {
+                requestAnimationFrame(updateCounter);
+            } else {
+                counter.textContent = target;
+            }
+        }
+
+        requestAnimationFrame(updateCounter);
+    });
+
+    /* Notification interaction */
+    const notification = document.querySelector(".notification");
+
+    if (notification) {
+        notification.addEventListener("click", function () {
+            alert("You have 3 new hospital notifications.");
+
+            this.animate(
+                [
+                    { transform: "rotate(0deg)" },
+                    { transform: "rotate(-15deg)" },
+                    { transform: "rotate(15deg)" },
+                    { transform: "rotate(0deg)" }
+                ],
+                {
+                    duration: 450,
+                    easing: "ease-in-out"
+                }
+            );
+        });
+    }
+
+    /* Show live greeting based on current time */
+    const greeting = document.querySelector(".welcome h2");
+
+    if (greeting) {
+        const hour = new Date().getHours();
+        let message = "Good evening";
+
+        if (hour < 12) {
+            message = "Good morning";
+        } else if (hour < 18) {
+            message = "Good afternoon";
+        }
+
+        greeting.textContent = message + ", Administrator";
+    }
+
+});
+</script>
 </script>
 
 </body>
