@@ -1,107 +1,330 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
-	pageEncoding="UTF-8"%>
+    pageEncoding="UTF-8"%>
+
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>CareConnect | Login</title>
 
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/style.css">
+    <link rel="stylesheet"
+          href="${pageContext.request.contextPath}/css/style.css">
+
 </head>
+
 <body>
-	<div class="login-page">
-		<section class="login-info">
-			<div class="brand">
-				<span class="brand-icon">+</span><span>Care<span>Connect</span></span>
-			</div>
 
-			<div class="welcome-content">
-				<p class="tagline">HOSPITAL MANAGEMENT SYSTEM</p>
-				<h1>
-					Smarter care.<br>Better <span>healthcare.</span>
-				</h1>
-				<p class="description">Manage patients, doctors, appointments,
-					billing and hospital operations from one simple and secure
-					platform.</p>
+<div class="login-page">
 
-				<div class="features">
-					<div class="feature">
-						<span class="feature-icon">✓</span>
-						<div>
-							<strong>Complete Patient Management</strong>
-							<p>Maintain accurate patient records and medical information.</p>
-						</div>
-					</div>
-					<div class="feature">
-						<span class="feature-icon">⚕</span>
-						<div>
-							<strong>Doctor &amp; Appointment Management</strong>
-							<p>Organize doctors and appointments efficiently.</p>
-						</div>
-					</div>
-					<div class="feature">
-						<span class="feature-icon">₹</span>
-						<div>
-							<strong>Simple Billing</strong>
-							<p>Manage invoices and payments in one place.</p>
-						</div>
-					</div>
-				</div>
-			</div>
+    <!-- =====================================================
+         LEFT SIDE
+         ===================================================== -->
 
-			<small class="copyright">© 2026 CareConnect. All rights
-				reserved.</small>
-		</section>
+    <section class="login-info">
 
-		<section class="login-section">
-			<div class="login-card">
-				<div class="mobile-brand">
-					<span class="brand-icon">+</span>CareConnect
-				</div>
-				<div class="login-header">
-					<h2>Welcome back</h2>
-					<p>Sign in to access your hospital management dashboard.</p>
-				</div>
+        <!-- BRAND -->
 
-				<form action="dashboard.jsp" method="get">
-					<div class="form-group">
-						<label for="username">Username</label> <input id="username"
-							name="username" type="text" placeholder="Enter your username"
-							autocomplete="username" required>
-					</div>
+        <div class="brand">
 
-					<div class="form-group">
-						<div class="label-row">
-							<label for="password">Password</label> <a
-								href="${pageContext.request.contextPath}/forgot-password.jsp">Forgot
-								password?</a>
-						</div>
-						<input id="password" name="password" type="password"
-							placeholder="Enter your password" autocomplete="current-password"
-							required>
-					</div>
+            <span class="brand-icon">+</span>
 
-					<div class="remember">
-						<label><input name="remember" type="checkbox" value="true">
-							Remember me</label>
-					</div>
+            <span>
+                Care<span>Connect</span>
+            </span>
 
-					<button class="login-button" type="submit">
-						Sign in <span>→</span>
-					</button>
-				</form>
+        </div>
 
-				<div class="security-note">
-					<span>🔒</span>
-					<div>
-						<strong>Secure Login</strong>
-						<p>Your hospital data is protected with secure authentication.</p>
-					</div>
-				</div>
-			</div>
-		</section>
-	</div>
+
+        <!-- WELCOME CONTENT -->
+
+        <div class="welcome-content">
+
+            <p class="tagline">
+                HOSPITAL MANAGEMENT SYSTEM
+            </p>
+
+
+            <h1>
+
+                Smarter care.<br>
+
+                Better <span>healthcare.</span>
+
+            </h1>
+
+
+            <p class="description">
+
+                Manage patients, doctors, appointments,
+                billing and hospital operations from one
+                simple and secure platform.
+
+            </p>
+
+
+            <!-- FEATURES -->
+
+            <div class="features">
+
+
+                <!-- FEATURE 1 -->
+
+                <div class="feature">
+
+                    <span class="feature-icon">
+                        ✓
+                    </span>
+
+                    <div>
+
+                        <strong>
+                            Complete Patient Management
+                        </strong>
+
+                        <p>
+                            Maintain accurate patient records
+                            and medical information.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- FEATURE 2 -->
+
+                <div class="feature">
+
+                    <span class="feature-icon">
+                        ⚕
+                    </span>
+
+                    <div>
+
+                        <strong>
+                            Doctor &amp; Appointment Management
+                        </strong>
+
+                        <p>
+                            Organize doctors and appointments
+                            efficiently.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- FEATURE 3 -->
+
+                <div class="feature">
+
+                    <span class="feature-icon">
+                        ₹
+                    </span>
+
+                    <div>
+
+                        <strong>
+                            Simple Billing
+                        </strong>
+
+                        <p>
+                            Manage invoices and payments
+                            in one place.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+        </div>
+
+
+        <!-- COPYRIGHT -->
+
+        <small class="copyright">
+
+            © 2026 CareConnect. All rights reserved.
+
+        </small>
+
+    </section>
+
+
+    <!-- =====================================================
+         RIGHT SIDE
+         ===================================================== -->
+
+    <section class="login-section">
+
+        <div class="login-card">
+
+
+            <!-- MOBILE BRAND -->
+
+            <div class="mobile-brand">
+
+                <span class="brand-icon">
+                    +
+                </span>
+
+                CareConnect
+
+            </div>
+
+
+            <!-- LOGIN HEADER -->
+
+            <div class="login-header">
+
+                <h2>
+                    Welcome back
+                </h2>
+
+                <p>
+                    Sign in to access your hospital
+                    management dashboard.
+                </p>
+
+            </div>
+
+
+            <!-- =================================================
+                 LOGIN FORM
+
+                 IMPORTANT:
+                 This submits to LoginServlet.
+                 ================================================= -->
+
+            <form
+                action="${pageContext.request.contextPath}/LoginServlet"
+                method="post">
+
+
+                <!-- USERNAME -->
+
+                <div class="form-group">
+
+                    <label for="username">
+                        Username
+                    </label>
+
+                    <input
+                        id="username"
+                        name="username"
+                        type="text"
+                        placeholder="Enter your username"
+                        autocomplete="username"
+                        required>
+
+                </div>
+
+
+                <!-- PASSWORD -->
+
+                <div class="form-group">
+
+                    <div class="label-row">
+
+                        <label for="password">
+                            Password
+                        </label>
+
+                        <a href="${pageContext.request.contextPath}/forgot-password.jsp">
+                            Forgot password?
+                        </a>
+
+                    </div>
+
+
+                    <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        placeholder="Enter your password"
+                        autocomplete="current-password"
+                        required>
+
+                </div>
+
+
+                <!-- REMEMBER ME -->
+
+                <div class="remember">
+
+                    <label>
+
+                        <input
+                            name="remember"
+                            type="checkbox"
+                            value="true">
+
+                        Remember me
+
+                    </label>
+
+                </div>
+
+
+                <!-- LOGIN BUTTON -->
+
+                <button
+                    class="login-button"
+                    type="submit">
+
+                    Sign in
+
+                    <span>
+                        →
+                    </span>
+
+                </button>
+
+
+            </form>
+
+
+            <!-- =================================================
+                 SECURITY NOTE
+                 ================================================= -->
+
+            <div class="security-note">
+
+                <span>
+                    🔒
+                </span>
+
+                <div>
+
+                    <strong>
+                        Secure Login
+                    </strong>
+
+                    <p>
+                        Your hospital data is protected
+                        with secure authentication.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+        </div>
+
+    </section>
+
+
+</div>
+
 </body>
+
 </html>
