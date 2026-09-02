@@ -9,7 +9,6 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
 
 @WebServlet("/LoginServlet")
 public class LoginServlet extends HttpServlet {
@@ -28,23 +27,22 @@ public class LoginServlet extends HttpServlet {
 
         UserDAO userDAO = new UserDAO();
 
-        boolean loginSuccess = userDAO.login(username, password);
+        if (userDAO.login(username, password)) {
 
-        if (loginSuccess) {
+            System.out.println("LOGIN SUCCESS");
 
-            // Create session
-            HttpSession session = request.getSession();
-            session.setAttribute("username", username);
-
-            // Go to dashboard
-            response.sendRedirect(request.getContextPath() + "/dashboard.jsp");
+            response.sendRedirect(
+                request.getContextPath() + "/dashboard.jsp"
+            );
 
         } else {
 
-            // Invalid login
+            System.out.println("LOGIN FAILED");
+
             response.sendRedirect(
-                request.getContextPath() + "/login.jsp?error=invalid"
+                request.getContextPath()
+                + "/login.jsp?error=invalid"
             );
         }
     }
-}
+}	
