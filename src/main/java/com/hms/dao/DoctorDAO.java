@@ -1,3 +1,4 @@
+
 package com.hms.dao;
 
 import java.sql.Connection;
@@ -27,40 +28,20 @@ public class DoctorDAO {
 
             Connection con = DBConnection.getConnection();
 
-            PreparedStatement ps =
-                con.prepareStatement(sql);
+            PreparedStatement ps = con.prepareStatement(sql);
 
-            ResultSet rs =
-                ps.executeQuery();
+            ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
 
                 Doctor doctor = new Doctor();
 
-                doctor.setId(
-                    rs.getInt("doctor_id")
-                );
-
-                doctor.setName(
-                    rs.getString("name")
-                );
-
-                doctor.setSpecialization(
-                    rs.getString("specialization")
-                );
-
-                doctor.setPhone(
-                    rs.getString("phone")
-                );
-
-                doctor.setEmail(
-                    rs.getString("email")
-                );
-
-                doctor.setExperience(
-                    rs.getInt("experience")
-                );
-
+                doctor.setId(rs.getInt("doctor_id"));
+                doctor.setName(rs.getString("name"));
+                doctor.setSpecialization(rs.getString("specialization"));
+                doctor.setPhone(rs.getString("phone"));
+                doctor.setEmail(rs.getString("email"));
+                doctor.setExperience(rs.getInt("experience"));
                 doctor.setConsultationFee(
                     rs.getDouble("consultation_fee")
                 );
@@ -94,44 +75,29 @@ public class DoctorDAO {
 
         try {
 
-            Connection con =
-                DBConnection.getConnection();
+            Connection con = DBConnection.getConnection();
 
-            PreparedStatement ps =
-                con.prepareStatement(sql);
+            PreparedStatement ps = con.prepareStatement(sql);
 
-            ps.setString(
-                1,
-                doctor.getName()
-            );
+            ps.setString(1, doctor.getName());
+            ps.setString(2, doctor.getSpecialization());
+            ps.setString(3, doctor.getPhone());
+            ps.setString(4, doctor.getEmail());
+            ps.setInt(5, doctor.getExperience());
+            ps.setDouble(6, doctor.getConsultationFee());
 
-            ps.setString(
-                2,
-                doctor.getSpecialization()
-            );
+            System.out.println("Adding doctor...");
+            System.out.println("Name: " + doctor.getName());
+            System.out.println("Specialization: " + doctor.getSpecialization());
+            System.out.println("Phone: " + doctor.getPhone());
+            System.out.println("Email: " + doctor.getEmail());
+            System.out.println("Experience: " + doctor.getExperience());
+            System.out.println("Consultation Fee: "
+                               + doctor.getConsultationFee());
 
-            ps.setString(
-                3,
-                doctor.getPhone()
-            );
+            int result = ps.executeUpdate();
 
-            ps.setString(
-                4,
-                doctor.getEmail()
-            );
-
-            ps.setInt(
-                5,
-                doctor.getExperience()
-            );
-
-            ps.setDouble(
-                6,
-                doctor.getConsultationFee()
-            );
-
-            int result =
-                ps.executeUpdate();
+            System.out.println("Insert result: " + result);
 
             ps.close();
             con.close();
@@ -140,6 +106,7 @@ public class DoctorDAO {
 
         } catch (Exception e) {
 
+            System.out.println("ERROR WHILE ADDING DOCTOR:");
             e.printStackTrace();
 
             return false;
@@ -161,45 +128,26 @@ public class DoctorDAO {
 
         try {
 
-            Connection con =
-                DBConnection.getConnection();
+            Connection con = DBConnection.getConnection();
 
-            PreparedStatement ps =
-                con.prepareStatement(sql);
+            PreparedStatement ps = con.prepareStatement(sql);
 
             ps.setInt(1, id);
 
-            ResultSet rs =
-                ps.executeQuery();
+            ResultSet rs = ps.executeQuery();
 
             if (rs.next()) {
 
                 doctor = new Doctor();
 
-                doctor.setId(
-                    rs.getInt("doctor_id")
-                );
-
-                doctor.setName(
-                    rs.getString("name")
-                );
-
+                doctor.setId(rs.getInt("doctor_id"));
+                doctor.setName(rs.getString("name"));
                 doctor.setSpecialization(
                     rs.getString("specialization")
                 );
-
-                doctor.setPhone(
-                    rs.getString("phone")
-                );
-
-                doctor.setEmail(
-                    rs.getString("email")
-                );
-
-                doctor.setExperience(
-                    rs.getInt("experience")
-                );
-
+                doctor.setPhone(rs.getString("phone"));
+                doctor.setEmail(rs.getString("email"));
+                doctor.setExperience(rs.getInt("experience"));
                 doctor.setConsultationFee(
                     rs.getDouble("consultation_fee")
                 );
@@ -235,49 +183,19 @@ public class DoctorDAO {
 
         try {
 
-            Connection con =
-                DBConnection.getConnection();
+            Connection con = DBConnection.getConnection();
 
-            PreparedStatement ps =
-                con.prepareStatement(sql);
+            PreparedStatement ps = con.prepareStatement(sql);
 
-            ps.setString(
-                1,
-                doctor.getName()
-            );
+            ps.setString(1, doctor.getName());
+            ps.setString(2, doctor.getSpecialization());
+            ps.setString(3, doctor.getPhone());
+            ps.setString(4, doctor.getEmail());
+            ps.setInt(5, doctor.getExperience());
+            ps.setDouble(6, doctor.getConsultationFee());
+            ps.setInt(7, doctor.getId());
 
-            ps.setString(
-                2,
-                doctor.getSpecialization()
-            );
-
-            ps.setString(
-                3,
-                doctor.getPhone()
-            );
-
-            ps.setString(
-                4,
-                doctor.getEmail()
-            );
-
-            ps.setInt(
-                5,
-                doctor.getExperience()
-            );
-
-            ps.setDouble(
-                6,
-                doctor.getConsultationFee()
-            );
-
-            ps.setInt(
-                7,
-                doctor.getId()
-            );
-
-            int result =
-                ps.executeUpdate();
+            int result = ps.executeUpdate();
 
             ps.close();
             con.close();
@@ -304,16 +222,13 @@ public class DoctorDAO {
 
         try {
 
-            Connection con =
-                DBConnection.getConnection();
+            Connection con = DBConnection.getConnection();
 
-            PreparedStatement ps =
-                con.prepareStatement(sql);
+            PreparedStatement ps = con.prepareStatement(sql);
 
             ps.setInt(1, id);
 
-            int result =
-                ps.executeUpdate();
+            int result = ps.executeUpdate();
 
             ps.close();
             con.close();
@@ -335,8 +250,7 @@ public class DoctorDAO {
 
     public List<Doctor> searchDoctors(String keyword) {
 
-        List<Doctor> doctors =
-            new ArrayList<>();
+        List<Doctor> doctors = new ArrayList<>();
 
         String sql = "SELECT doctor_id, name, specialization, phone, "
                    + "email, experience, consultation_fee "
@@ -348,51 +262,30 @@ public class DoctorDAO {
 
         try {
 
-            Connection con =
-                DBConnection.getConnection();
+            Connection con = DBConnection.getConnection();
 
-            PreparedStatement ps =
-                con.prepareStatement(sql);
+            PreparedStatement ps = con.prepareStatement(sql);
 
-            String searchKeyword =
-                "%" + keyword + "%";
+            String searchKeyword = "%" + keyword + "%";
 
             ps.setString(1, searchKeyword);
             ps.setString(2, searchKeyword);
             ps.setString(3, searchKeyword);
 
-            ResultSet rs =
-                ps.executeQuery();
+            ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
 
-                Doctor doctor =
-                    new Doctor();
+                Doctor doctor = new Doctor();
 
-                doctor.setId(
-                    rs.getInt("doctor_id")
-                );
-
-                doctor.setName(
-                    rs.getString("name")
-                );
-
+                doctor.setId(rs.getInt("doctor_id"));
+                doctor.setName(rs.getString("name"));
                 doctor.setSpecialization(
                     rs.getString("specialization")
                 );
-
-                doctor.setPhone(
-                    rs.getString("phone")
-                );
-
-                doctor.setEmail(
-                    rs.getString("email")
-                );
-
-                doctor.setExperience(
-                    rs.getInt("experience")
-                );
-
+                doctor.setPhone(rs.getString("phone"));
+                doctor.setEmail(rs.getString("email"));
+                doctor.setExperience(rs.getInt("experience"));
                 doctor.setConsultationFee(
                     rs.getDouble("consultation_fee")
                 );

@@ -4,8 +4,7 @@
 
 <!DOCTYPE html>
 <html>
-<!DOCTYPE html>
-<html>
+
 <head>
 
     <meta charset="UTF-8">
@@ -182,13 +181,18 @@
     <div class="header">
 
         <div>
+
             <h1>Doctor Management</h1>
+
             <p>Manage and view registered doctors.</p>
+
         </div>
 
         <a href="${pageContext.request.contextPath}/add-doctor.jsp"
            class="add-btn">
+
             + Add Doctor
+
         </a>
 
     </div>
@@ -260,12 +264,19 @@
                 <tr>
 
                     <th>ID</th>
+
                     <th>Name</th>
+
                     <th>Specialization</th>
+
                     <th>Phone</th>
+
                     <th>Email</th>
+
                     <th>Experience</th>
+
                     <th>Consultation Fee</th>
+
                     <th>Actions</th>
 
                 </tr>
@@ -312,21 +323,27 @@
                     </td>
 
                     <td>
-                        ₹<%= String.format("%.2f",
-                                doctor.getConsultationFee()) %>
+                        ₹<%= String.format(
+                            "%.2f",
+                            doctor.getConsultationFee()
+                        ) %>
                     </td>
 
                     <td>
 
                         <a href="${pageContext.request.contextPath}/DoctorServlet?action=edit&id=<%= doctor.getId() %>"
                            class="edit-btn">
+
                             Edit
+
                         </a>
 
                         <a href="${pageContext.request.contextPath}/DoctorServlet?action=delete&id=<%= doctor.getId() %>"
                            class="delete-btn"
                            onclick="return confirm('Are you sure you want to delete this doctor?');">
+
                             Delete
+
                         </a>
 
                     </td>
@@ -367,4 +384,5 @@
 </div>
 
 </body>
+
 </html>
