@@ -405,6 +405,19 @@
 
 </div>
 
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const dateInput = document.getElementById("appointmentDate");
+    if (dateInput && !dateInput.value) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+    }
+    const timeInput = document.getElementById("appointmentTime");
+    if (timeInput && !timeInput.value) {
+        timeInput.value = "10:00";
+    }
+});
+</script>
+
 </body>
 
 </html>

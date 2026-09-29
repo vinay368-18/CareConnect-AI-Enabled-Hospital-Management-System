@@ -189,12 +189,33 @@
 
         <h1>Billing Management</h1>
 
-        <a href="${pageContext.request.contextPath}/add-bill.jsp"
-           class="add-btn">
-            + Add Bill
-        </a>
+        <div style="display: flex; gap: 10px;">
+            <a href="${pageContext.request.contextPath}/dashboard.jsp"
+               style="display: inline-flex; align-items: center; background: #374151; color: white; text-decoration: none; padding: 11px 18px; border-radius: 7px; font-weight: bold;">
+                ← Dashboard
+            </a>
+            <a href="${pageContext.request.contextPath}/add-bill.jsp"
+               class="add-btn">
+                + Add Bill
+            </a>
+        </div>
 
     </div>
+
+    <%
+        String error = request.getParameter("error");
+        if (error != null) {
+    %>
+        <div style="background: #fee2e2; color: #991b1b; padding: 12px 16px; border-radius: 7px; margin-bottom: 20px;">
+            <% if ("delete".equals(error)) { %>
+                Unable to delete bill. Please try again.
+            <% } else if ("invalid".equals(error)) { %>
+                Invalid billing information provided.
+            <% } %>
+        </div>
+    <%
+        }
+    %>
 
 
     <!-- Search -->

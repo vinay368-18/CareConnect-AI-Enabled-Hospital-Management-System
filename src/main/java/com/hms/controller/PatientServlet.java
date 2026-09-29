@@ -103,6 +103,9 @@ public class PatientServlet extends HttpServlet {
                           HttpServletResponse response)
             throws ServletException, IOException {
 
+        request.setCharacterEncoding("UTF-8");
+        response.setCharacterEncoding("UTF-8");
+
         String action = request.getParameter("action");
 
         // ADD
@@ -203,10 +206,20 @@ public class PatientServlet extends HttpServlet {
         String address =
             request.getParameter("address");
 
+        if (name == null || name.trim().isEmpty() ||
+            ageText == null || ageText.trim().isEmpty()) {
+
+            response.sendRedirect(
+                request.getContextPath()
+                + "/add-patient.jsp?error=invalid"
+            );
+            return;
+        }
+
         try {
 
             int age =
-                Integer.parseInt(ageText);
+                Integer.parseInt(ageText.trim());
 
             // AGE VALIDATION
 
@@ -272,9 +285,24 @@ public class PatientServlet extends HttpServlet {
                     request.getParameter("id")
                 );
 
+            String name = request.getParameter("name");
+            String ageText = request.getParameter("age");
+
+            if (name == null || name.trim().isEmpty() ||
+                ageText == null || ageText.trim().isEmpty()) {
+
+                response.sendRedirect(
+                    request.getContextPath()
+                    + "/PatientServlet?action=edit&id="
+                    + id
+                    + "&error=invalid"
+                );
+                return;
+            }
+
             int age =
                 Integer.parseInt(
-                    request.getParameter("age")
+                    ageText.trim()
                 );
 
             // AGE VALIDATION

@@ -333,13 +333,21 @@
 
         </div>
 
+        <div style="display: flex; gap: 10px;">
 
-        <a href="${pageContext.request.contextPath}/add-appointment.jsp"
-           class="add-btn">
+            <a href="${pageContext.request.contextPath}/dashboard.jsp"
+               style="display: inline-flex; align-items: center; background: #263f63; color: white; text-decoration: none; padding: 15px 22px; border-radius: 10px; font-weight: bold;">
+                ← Dashboard
+            </a>
 
-            + Add Appointment
+            <a href="${pageContext.request.contextPath}/add-appointment.jsp"
+               class="add-btn">
 
-        </a>
+                + Add Appointment
+
+            </a>
+
+        </div>
 
     </div>
 

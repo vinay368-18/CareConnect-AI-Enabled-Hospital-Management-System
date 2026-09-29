@@ -188,12 +188,21 @@
 
         </div>
 
-        <a href="${pageContext.request.contextPath}/add-doctor.jsp"
-           class="add-btn">
+        <div style="display: flex; gap: 10px;">
 
-            + Add Doctor
+            <a href="${pageContext.request.contextPath}/dashboard.jsp"
+               style="display: inline-flex; align-items: center; background: #263b5a; color: white; text-decoration: none; padding: 14px 20px; border-radius: 10px; font-weight: bold;">
+                ← Dashboard
+            </a>
 
-        </a>
+            <a href="${pageContext.request.contextPath}/add-doctor.jsp"
+               class="add-btn">
+
+                + Add Doctor
+
+            </a>
+
+        </div>
 
     </div>
 
@@ -247,6 +256,11 @@
             <button type="submit">
                 Search
             </button>
+
+            <a href="${pageContext.request.contextPath}/DoctorServlet?action=list"
+               style="display: inline-flex; align-items: center; padding: 12px 20px; background: #edf2f5; color: #43546b; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px;">
+                Clear
+            </a>
 
         </form>
 

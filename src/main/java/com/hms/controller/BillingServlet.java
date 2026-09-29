@@ -71,6 +71,9 @@ public class BillingServlet extends HttpServlet {
                           HttpServletResponse response)
             throws ServletException, IOException {
 
+        request.setCharacterEncoding("UTF-8");
+        response.setCharacterEncoding("UTF-8");
+
         String action = request.getParameter("action");
 
         if ("add".equals(action)) {
@@ -145,12 +148,7 @@ public class BillingServlet extends HttpServlet {
             String billDateText =
                 request.getParameter("billDate");
 
-            Date billDate =
-                Date.valueOf(billDateText);
-
-
             // Validation
-
             if (patientId <= 0
                     || amount < 0
                     || billDateText == null
@@ -163,6 +161,9 @@ public class BillingServlet extends HttpServlet {
 
                 return;
             }
+
+            Date billDate =
+                Date.valueOf(billDateText.trim());
 
 
             if (paymentStatus == null
@@ -307,15 +308,14 @@ public class BillingServlet extends HttpServlet {
             String paymentStatus =
                 request.getParameter("paymentStatus");
 
-            Date billDate =
-                Date.valueOf(
-                    request.getParameter("billDate")
-                );
-
+            String billDateText =
+                request.getParameter("billDate");
 
             if (id <= 0
                     || patientId <= 0
-                    || amount < 0) {
+                    || amount < 0
+                    || billDateText == null
+                    || billDateText.trim().isEmpty()) {
 
                 response.sendRedirect(
                     request.getContextPath()
@@ -326,6 +326,9 @@ public class BillingServlet extends HttpServlet {
 
                 return;
             }
+
+            Date billDate =
+                Date.valueOf(billDateText.trim());
 
 
             if (paymentStatus == null

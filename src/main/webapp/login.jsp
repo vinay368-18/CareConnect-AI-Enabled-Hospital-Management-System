@@ -196,6 +196,23 @@
 
             </div>
 
+            <%
+                String error = request.getParameter("error");
+                String msg = request.getParameter("msg");
+                if ("invalid".equals(error)) {
+            %>
+                <div style="background: #fde8e8; color: #9b1c1c; border-left: 4px solid #f05252; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 14px;">
+                    ⚠️ Invalid username or password. Please try again.
+                </div>
+            <%
+                } else if ("logged_out".equals(msg)) {
+            %>
+                <div style="background: #def7ec; color: #03543f; border-left: 4px solid #31c48d; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 14px;">
+                    ✓ You have been logged out successfully.
+                </div>
+            <%
+                }
+            %>
 
             <!-- =================================================
                  LOGIN FORM

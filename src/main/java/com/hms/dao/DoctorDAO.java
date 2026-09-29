@@ -217,15 +217,28 @@ public class DoctorDAO {
 
     public boolean deleteDoctor(int id) {
 
-        String sql =
-            "DELETE FROM doctors WHERE doctor_id = ?";
+        String nullifyBillsSql = "UPDATE bills SET appointment_id = NULL WHERE appointment_id IN (SELECT appointment_id FROM appointments WHERE doctor_id = ?)";
+        String deleteAppointmentsSql = "DELETE FROM appointments WHERE doctor_id = ?";
+        String deleteDoctorSql = "DELETE FROM doctors WHERE doctor_id = ?";
 
         try {
 
             Connection con = DBConnection.getConnection();
 
-            PreparedStatement ps = con.prepareStatement(sql);
+            // 1. Detach bills from appointments of this doctor
+            PreparedStatement psBills = con.prepareStatement(nullifyBillsSql);
+            psBills.setInt(1, id);
+            psBills.executeUpdate();
+            psBills.close();
 
+            // 2. Delete appointments with this doctor
+            PreparedStatement psAppt = con.prepareStatement(deleteAppointmentsSql);
+            psAppt.setInt(1, id);
+            psAppt.executeUpdate();
+            psAppt.close();
+
+            // 3. Delete doctor
+            PreparedStatement ps = con.prepareStatement(deleteDoctorSql);
             ps.setInt(1, id);
 
             int result = ps.executeUpdate();

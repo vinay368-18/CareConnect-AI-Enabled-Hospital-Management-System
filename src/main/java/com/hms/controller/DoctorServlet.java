@@ -117,6 +117,9 @@ public class DoctorServlet extends HttpServlet {
                           HttpServletResponse response)
             throws ServletException, IOException {
 
+        request.setCharacterEncoding("UTF-8");
+        response.setCharacterEncoding("UTF-8");
+
         String action = request.getParameter("action");
 
         // ADD
@@ -226,27 +229,28 @@ public class DoctorServlet extends HttpServlet {
         String feeText =
             request.getParameter("consultationFee");
 
+        if (name == null || name.trim().isEmpty() ||
+            specialization == null || specialization.trim().isEmpty() ||
+            experienceText == null || feeText == null) {
+
+            response.sendRedirect(
+                request.getContextPath()
+                + "/add-doctor.jsp?error=invalid"
+            );
+            return;
+        }
+
         try {
 
             int experience =
-                Integer.parseInt(experienceText);
+                Integer.parseInt(experienceText.trim());
 
             double consultationFee =
-                Double.parseDouble(feeText);
+                Double.parseDouble(feeText.trim());
 
             // VALIDATION
 
-            if (experience < 0 || experience > 70) {
-
-                response.sendRedirect(
-                    request.getContextPath()
-                    + "/add-doctor.jsp?error=invalid"
-                );
-
-                return;
-            }
-
-            if (consultationFee < 0) {
+            if (experience < 0 || experience > 70 || consultationFee < 0) {
 
                 response.sendRedirect(
                     request.getContextPath()
@@ -311,6 +315,21 @@ public class DoctorServlet extends HttpServlet {
                     request.getParameter("id")
                 );
 
+            String name = request.getParameter("name");
+            String specialization = request.getParameter("specialization");
+
+            if (name == null || name.trim().isEmpty() ||
+                specialization == null || specialization.trim().isEmpty()) {
+
+                response.sendRedirect(
+                    request.getContextPath()
+                    + "/DoctorServlet?action=edit&id="
+                    + id
+                    + "&error=invalid"
+                );
+                return;
+            }
+
             int experience =
                 Integer.parseInt(
                     request.getParameter("experience")
@@ -323,19 +342,7 @@ public class DoctorServlet extends HttpServlet {
 
             // VALIDATION
 
-            if (experience < 0 || experience > 70) {
-
-                response.sendRedirect(
-                    request.getContextPath()
-                    + "/DoctorServlet?action=edit&id="
-                    + id
-                    + "&error=invalid"
-                );
-
-                return;
-            }
-
-            if (consultationFee < 0) {
+            if (experience < 0 || experience > 70 || consultationFee < 0) {
 
                 response.sendRedirect(
                     request.getContextPath()

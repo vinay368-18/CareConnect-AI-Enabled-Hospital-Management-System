@@ -348,4 +348,68 @@ public class ReportDAO {
 
         return appointments;
     }
+
+    // =========================
+    // PENDING BILLS COUNT
+    // =========================
+
+    public int getPendingBillsCount() {
+
+        String sql = "SELECT COUNT(*) FROM bills WHERE payment_status = 'Pending'";
+
+        try {
+            Connection con = DBConnection.getConnection();
+            PreparedStatement ps = con.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                int count = rs.getInt(1);
+                rs.close();
+                ps.close();
+                con.close();
+                return count;
+            }
+
+            rs.close();
+            ps.close();
+            con.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
+    // =========================
+    // TODAY APPOINTMENTS COUNT
+    // =========================
+
+    public int getTodayAppointments() {
+
+        String sql = "SELECT COUNT(*) FROM appointments WHERE appointment_date = CURRENT_DATE()";
+
+        try {
+            Connection con = DBConnection.getConnection();
+            PreparedStatement ps = con.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                int count = rs.getInt(1);
+                rs.close();
+                ps.close();
+                con.close();
+                return count;
+            }
+
+            rs.close();
+            ps.close();
+            con.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
 }

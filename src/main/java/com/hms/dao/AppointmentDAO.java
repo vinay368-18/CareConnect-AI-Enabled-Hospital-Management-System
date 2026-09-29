@@ -316,17 +316,21 @@ public class AppointmentDAO {
 
     public boolean deleteAppointment(int id) {
 
-        String sql =
-            "DELETE FROM appointments "
-          + "WHERE appointment_id = ?";
+        String updateBillsSql = "UPDATE bills SET appointment_id = NULL WHERE appointment_id = ?";
+        String sql = "DELETE FROM appointments WHERE appointment_id = ?";
 
         try {
 
             Connection con = DBConnection.getConnection();
 
-            PreparedStatement ps =
-                con.prepareStatement(sql);
+            // First nullify any bill foreign keys referencing this appointment
+            PreparedStatement psUpdate = con.prepareStatement(updateBillsSql);
+            psUpdate.setInt(1, id);
+            psUpdate.executeUpdate();
+            psUpdate.close();
 
+            // Then delete the appointment
+            PreparedStatement ps = con.prepareStatement(sql);
             ps.setInt(1, id);
 
             int result = ps.executeUpdate();

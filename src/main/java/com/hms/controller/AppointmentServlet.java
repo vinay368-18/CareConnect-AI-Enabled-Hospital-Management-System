@@ -90,6 +90,9 @@ public class AppointmentServlet extends HttpServlet {
             HttpServletResponse response)
             throws ServletException, IOException {
 
+        request.setCharacterEncoding("UTF-8");
+        response.setCharacterEncoding("UTF-8");
+
         String action = request.getParameter("action");
 
         // ADD
@@ -159,42 +162,38 @@ public class AppointmentServlet extends HttpServlet {
                 request.getParameter("doctorId")
             );
 
-            // Appointment Date
-            Date appointmentDate = Date.valueOf(
-                request.getParameter("appointmentDate")
-            );
+            String dateText =
+                request.getParameter("appointmentDate");
 
-            // Appointment Time
             String timeText =
                 request.getParameter("appointmentTime");
 
-            /*
-             * HTML <input type="time"> normally sends:
-             *
-             * HH:mm
-             *
-             * Example:
-             * 19:40
-             *
-             * java.sql.Time.valueOf() expects:
-             *
-             * HH:mm:ss
-             *
-             * Example:
-             * 19:40:00
-             */
+            String reason =
+                request.getParameter("reason");
 
-            if (timeText != null && timeText.length() == 5) {
+            if (patientId <= 0 ||
+                doctorId <= 0 ||
+                dateText == null || dateText.trim().isEmpty() ||
+                timeText == null || timeText.trim().isEmpty() ||
+                reason == null || reason.trim().isEmpty()) {
 
+                response.sendRedirect(
+                    request.getContextPath()
+                    + "/add-appointment.jsp?error=invalid"
+                );
+
+                return;
+            }
+
+            Date appointmentDate = Date.valueOf(dateText.trim());
+
+            timeText = timeText.trim();
+            if (timeText.length() == 5) {
                 timeText = timeText + ":00";
             }
 
             Time appointmentTime =
                 Time.valueOf(timeText);
-
-            // Reason
-            String reason =
-                request.getParameter("reason");
 
             // Status
             String status =
@@ -375,58 +374,24 @@ public class AppointmentServlet extends HttpServlet {
                 request.getParameter("doctorId")
             );
 
-            // Date
-            Date appointmentDate = Date.valueOf(
-                request.getParameter("appointmentDate")
-            );
+            String dateText =
+                request.getParameter("appointmentDate");
 
-            // Time
             String timeText =
                 request.getParameter("appointmentTime");
 
-            /*
-             * HTML time input:
-             *
-             * HH:mm
-             *
-             * Convert to:
-             *
-             * HH:mm:ss
-             */
-
-            if (timeText != null &&
-                timeText.length() == 5) {
-
-                timeText = timeText + ":00";
-            }
-
-            Time appointmentTime =
-                Time.valueOf(timeText);
-
-            // Reason
             String reason =
                 request.getParameter("reason");
 
-            // Status
             String status =
                 request.getParameter("status");
-
-            // Default status
-            if (status == null ||
-                status.trim().isEmpty()) {
-
-                status = "Scheduled";
-            }
-
-            // =========================
-            // VALIDATION
-            // =========================
 
             if (id <= 0 ||
                 patientId <= 0 ||
                 doctorId <= 0 ||
-                reason == null ||
-                reason.trim().isEmpty()) {
+                dateText == null || dateText.trim().isEmpty() ||
+                timeText == null || timeText.trim().isEmpty() ||
+                reason == null || reason.trim().isEmpty()) {
 
                 response.sendRedirect(
                     request.getContextPath()
@@ -437,6 +402,16 @@ public class AppointmentServlet extends HttpServlet {
 
                 return;
             }
+
+            Date appointmentDate = Date.valueOf(dateText.trim());
+
+            timeText = timeText.trim();
+            if (timeText.length() == 5) {
+                timeText = timeText + ":00";
+            }
+
+            Time appointmentTime =
+                Time.valueOf(timeText);
 
             // =========================
             // CREATE APPOINTMENT

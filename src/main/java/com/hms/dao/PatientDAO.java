@@ -84,14 +84,37 @@ public class PatientDAO {
     }
     public boolean deletePatient(int id) {
 
-        String sql = "DELETE FROM patients WHERE patient_id = ?";
+        String deleteBillsSql = "DELETE FROM bills WHERE patient_id = ?";
+        String deleteBillingSql = "DELETE FROM billing WHERE patient_id = ?";
+        String deleteAppointmentsSql = "DELETE FROM appointments WHERE patient_id = ?";
+        String deletePatientSql = "DELETE FROM patients WHERE patient_id = ?";
 
         try {
 
             Connection con = DBConnection.getConnection();
 
-            PreparedStatement ps = con.prepareStatement(sql);
+            // 1. Delete associated bills
+            PreparedStatement psBills = con.prepareStatement(deleteBillsSql);
+            psBills.setInt(1, id);
+            psBills.executeUpdate();
+            psBills.close();
 
+            // 2. Delete legacy billing rows if any
+            try {
+                PreparedStatement psBilling = con.prepareStatement(deleteBillingSql);
+                psBilling.setInt(1, id);
+                psBilling.executeUpdate();
+                psBilling.close();
+            } catch (Exception ignored) {}
+
+            // 3. Delete associated appointments
+            PreparedStatement psAppt = con.prepareStatement(deleteAppointmentsSql);
+            psAppt.setInt(1, id);
+            psAppt.executeUpdate();
+            psAppt.close();
+
+            // 4. Delete patient
+            PreparedStatement ps = con.prepareStatement(deletePatientSql);
             ps.setInt(1, id);
 
             int result = ps.executeUpdate();

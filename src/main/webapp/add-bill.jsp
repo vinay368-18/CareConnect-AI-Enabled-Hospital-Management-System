@@ -210,7 +210,7 @@
 
                 <% for (Appointment appointment : appointments) { %>
 
-                    <option value="<%= appointment.getId() %>">
+                    <option value="<%= appointment.getId() %>" data-patient-id="<%= appointment.getPatientId() %>">
 
                         Appointment #<%= appointment.getId() %>
                         -
@@ -318,6 +318,7 @@
             </label>
 
             <input type="date"
+                   id="billDateInput"
                    name="billDate"
                    required>
 
@@ -343,6 +344,27 @@
     </form>
 
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const apptSelect = document.querySelector('select[name="appointmentId"]');
+    const patientSelect = document.querySelector('select[name="patientId"]');
+    if (apptSelect && patientSelect) {
+        apptSelect.addEventListener("change", function() {
+            const selectedOpt = this.options[this.selectedIndex];
+            const patientId = selectedOpt.getAttribute("data-patient-id");
+            if (patientId) {
+                patientSelect.value = patientId;
+            }
+        });
+    }
+
+    const billDateInput = document.getElementById("billDateInput");
+    if (billDateInput && !billDateInput.value) {
+        billDateInput.value = new Date().toISOString().split('T')[0];
+    }
+});
+</script>
 
 </body>
 </html>

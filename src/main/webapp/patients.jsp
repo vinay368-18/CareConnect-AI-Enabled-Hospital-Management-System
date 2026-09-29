@@ -26,11 +26,12 @@
             background: #f5f8fa;
             color: #172b4d;
             font-family: "Segoe UI", Arial, sans-serif;
-            padding: 40px;
+            margin: 0;
+            padding: 30px;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1250px;
             margin: auto;
         }
 
@@ -45,11 +46,33 @@
             font-size: 30px;
             color: #13233b;
             margin-bottom: 5px;
+            margin-top: 0;
         }
 
         .header p {
             color: #8290a3;
             font-size: 14px;
+            margin: 0;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .back-btn {
+            display: inline-block;
+            background: #263b5a;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 9px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .back-btn:hover {
+            background: #1c2d45;
         }
 
         .add-btn {
@@ -65,6 +88,59 @@
 
         .add-btn:hover {
             background: #056b63;
+        }
+
+        .search-section {
+            background: white;
+            padding: 20px;
+            border-radius: 14px;
+            margin-bottom: 22px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .search-form {
+            display: flex;
+            gap: 12px;
+        }
+
+        .search-form input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #dce3ea;
+            border-radius: 9px;
+            font-size: 15px;
+            outline: none;
+        }
+
+        .search-form input:focus {
+            border-color: #087f75;
+        }
+
+        .search-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 9px;
+            background: #263b5a;
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .search-btn:hover {
+            background: #1c2d45;
+        }
+
+        .clear-btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 12px 20px;
+            background: #edf2f5;
+            color: #43546b;
+            text-decoration: none;
+            border-radius: 9px;
+            font-weight: 600;
+            font-size: 14px;
         }
 
         .card {
@@ -126,24 +202,48 @@
             background: #d5eeeb;
         }
 
+        .delete-btn {
+            display: inline-block;
+            background: #fdecec;
+            color: #d64545;
+            padding: 7px 12px;
+            border-radius: 7px;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .delete-btn:hover {
+            background: #f9dada;
+        }
+
         .empty {
             text-align: center;
             color: #8290a3;
-            padding: 30px;
+            padding: 40px;
+        }
+
+        .error-message {
+            background: #fdecec;
+            color: #c0392b;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
         }
 
         @media (max-width: 700px) {
-
             body {
-                padding: 20px;
+                padding: 15px;
             }
-
             .header {
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 15px;
             }
-
+            .search-form {
+                flex-direction: column;
+            }
         }
 
     </style>
@@ -163,15 +263,73 @@
             <h1>Patient Management</h1>
 
             <p>
-                Manage and view registered patients.
+                Manage and view registered hospital patients.
             </p>
 
         </div>
 
-        <a href="${pageContext.request.contextPath}/add-patient.jsp"
-           class="add-btn">
-            + Add Patient
-        </a>
+        <div class="header-actions">
+
+            <a href="${pageContext.request.contextPath}/dashboard.jsp"
+               class="back-btn">
+                ← Dashboard
+            </a>
+
+            <a href="${pageContext.request.contextPath}/add-patient.jsp"
+               class="add-btn">
+                + Add Patient
+            </a>
+
+        </div>
+
+    </div>
+
+    <!-- ERROR MESSAGE -->
+
+    <%
+        String error = request.getParameter("error");
+        if (error != null) {
+    %>
+        <div class="error-message">
+            <% if ("delete".equals(error)) { %>
+                Unable to delete patient. Please try again.
+            <% } else if ("invalid".equals(error)) { %>
+                Invalid patient details provided.
+            <% } %>
+        </div>
+    <%
+        }
+    %>
+
+    <!-- SEARCH -->
+
+    <div class="search-section">
+
+        <form action="${pageContext.request.contextPath}/PatientServlet"
+              method="get"
+              class="search-form">
+
+            <input type="hidden"
+                   name="action"
+                   value="search">
+
+            <input type="text"
+                   name="keyword"
+                   placeholder="Search by name or phone number..."
+                   value="<%= request.getAttribute("searchKeyword") != null
+                           ? request.getAttribute("searchKeyword")
+                           : "" %>">
+
+            <button type="submit" class="search-btn">
+                Search
+            </button>
+
+            <a href="${pageContext.request.contextPath}/PatientServlet?action=list"
+               class="clear-btn">
+                Clear
+            </a>
+
+        </form>
 
     </div>
 
@@ -182,90 +340,94 @@
 
         <table>
 
-            <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Age</th>
-                <th>Gender</th>
-                <th>Phone</th>
-                <th>Address</th>
-                <th>Actions</th>
-            </tr>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>Gender</th>
+                    <th>Phone</th>
+                    <th>Address</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
 
-
+            <tbody>
             <%
-
                 List<Patient> patients =
                     (List<Patient>) request.getAttribute("patients");
 
                 if (patients != null && !patients.isEmpty()) {
 
                     for (Patient patient : patients) {
-
             %>
 
-            <tr>
+                <tr>
 
-                <td class="id">
-                    <%= patient.getId() %>
-                </td>
+                    <td class="id">
+                        #<%= patient.getId() %>
+                    </td>
 
-                <td>
-                    <%= patient.getName() %>
-                </td>
+                    <td>
+                        <strong><%= patient.getName() %></strong>
+                    </td>
 
-                <td>
-                    <%= patient.getAge() %>
-                </td>
+                    <td>
+                        <%= patient.getAge() %> yrs
+                    </td>
 
-                <td>
-                    <%= patient.getGender() %>
-                </td>
+                    <td>
+                        <%= patient.getGender() %>
+                    </td>
 
-                <td>
-                    <%= patient.getPhone() %>
-                </td>
+                    <td>
+                        <%= patient.getPhone() != null ? patient.getPhone() : "-" %>
+                    </td>
 
-                <td>
-                    <%= patient.getAddress() %>
-                </td>
+                    <td>
+                        <%= patient.getAddress() != null ? patient.getAddress() : "-" %>
+                    </td>
 
-                <td>
+                    <td>
 
-                    <div class="actions">
+                        <div class="actions">
 
-                        <a href="${pageContext.request.contextPath}/PatientServlet?action=edit&id=<%= patient.getId() %>"
-                           class="edit-btn">
-                            Edit
-                        </a>
+                            <a href="${pageContext.request.contextPath}/PatientServlet?action=edit&id=<%= patient.getId() %>"
+                               class="edit-btn">
+                                Edit
+                            </a>
 
-                    </div>
+                            <a href="${pageContext.request.contextPath}/PatientServlet?action=delete&id=<%= patient.getId() %>"
+                               class="delete-btn"
+                               onclick="return confirm('Are you sure you want to delete this patient? Associated appointments and bills will also be removed.');">
+                                Delete
+                            </a>
 
-                </td>
+                        </div>
 
-            </tr>
+                    </td>
+
+                </tr>
 
             <%
-
                     }
 
                 } else {
-
             %>
 
-            <tr>
+                <tr>
 
-                <td colspan="7" class="empty">
-                    No patients found.
-                </td>
+                    <td colspan="7" class="empty">
+                        <h3>No patients found</h3>
+                        <p>No matching patient records. Add a patient to get started.</p>
+                    </td>
 
-            </tr>
+                </tr>
 
             <%
-
                 }
-
             %>
+            </tbody>
 
         </table>
 

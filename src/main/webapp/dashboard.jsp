@@ -1,5 +1,19 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
     pageEncoding="UTF-8"%>
+<%@ page import="java.util.List" %>
+<%@ page import="com.hms.model.Appointment" %>
+<%@ page import="com.hms.dao.ReportDAO" %>
+
+<%
+    ReportDAO reportDAO = new ReportDAO();
+    int livePatients = reportDAO.getTotalPatients();
+    int liveDoctors = reportDAO.getTotalDoctors();
+    int liveAppointments = reportDAO.getTotalAppointments();
+    int livePendingBills = reportDAO.getPendingBillsCount();
+    List<Appointment> recentAppts = reportDAO.getRecentAppointments();
+    String currentUser = (session != null && session.getAttribute("user") != null) ? (String) session.getAttribute("user") : "Administrator";
+    String initial = (!currentUser.isEmpty()) ? currentUser.substring(0, 1).toUpperCase() : "A";
+%>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -138,7 +152,7 @@
 
     <div class="logout">
 
-        <a href="${pageContext.request.contextPath}/login.jsp">
+        <a href="${pageContext.request.contextPath}/LogoutServlet">
             Logout
         </a>
 
@@ -209,14 +223,14 @@
             <div class="profile">
 
                 <span class="profile-icon">
-                    V
+                    <%= initial %>
                 </span>
 
 
                 <span class="profile-info">
 
                     <strong>
-                        Administrator
+                        <%= currentUser %>
                     </strong>
 
                     <span>
@@ -247,11 +261,11 @@
         <div class="welcome">
 
             <h2>
-                Good evening, Administrator
+                Welcome, <%= currentUser %>
             </h2>
 
             <p>
-                Here's an overview of your hospital today.
+                Here's a live overview of your hospital system.
             </p>
 
         </div>
@@ -283,17 +297,15 @@
 
 
                 <div class="stat-number">
-                    248
+                    <%= livePatients %>
                 </div>
 
 
                 <div class="trend">
 
-                    ↑ 12.5%
-
-                    <span>
-                        vs last month
-                    </span>
+                    <a href="${pageContext.request.contextPath}/PatientServlet?action=list" style="color: inherit; text-decoration: none;">
+                        View all patients →
+                    </a>
 
                 </div>
 
@@ -319,17 +331,15 @@
 
 
                 <div class="stat-number">
-                    32
+                    <%= liveDoctors %>
                 </div>
 
 
                 <div class="trend">
 
-                    ↑ 4.2%
-
-                    <span>
-                        vs last month
-                    </span>
+                    <a href="${pageContext.request.contextPath}/DoctorServlet?action=list" style="color: inherit; text-decoration: none;">
+                        View all doctors →
+                    </a>
 
                 </div>
 
@@ -344,7 +354,7 @@
                 <div class="stat-top">
 
                     <span class="stat-label">
-                        Appointments Today
+                        Total Appointments
                     </span>
 
                     <span class="stat-icon">
@@ -355,17 +365,15 @@
 
 
                 <div class="stat-number">
-                    18
+                    <%= liveAppointments %>
                 </div>
 
 
                 <div class="trend">
 
-                    ↑ 8.1%
-
-                    <span>
-                        vs yesterday
-                    </span>
+                    <a href="${pageContext.request.contextPath}/AppointmentServlet?action=list" style="color: inherit; text-decoration: none;">
+                        View all appointments →
+                    </a>
 
                 </div>
 
@@ -391,17 +399,15 @@
 
 
                 <div class="stat-number">
-                    7
+                    <%= livePendingBills %>
                 </div>
 
 
                 <div class="trend">
 
-                    ↓ 3.4%
-
-                    <span>
-                        vs last week
-                    </span>
+                    <a href="${pageContext.request.contextPath}/BillingServlet?action=list" style="color: inherit; text-decoration: none;">
+                        View billing →
+                    </a>
 
                 </div>
 
@@ -429,7 +435,7 @@
                 <div class="card-header">
 
                     <h3>
-                        Today's Appointments
+                        Recent Appointments
                     </h3>
 
 
@@ -445,179 +451,63 @@
 
 
 
-                <!-- APPOINTMENT 1 -->
-
+                <%
+                    if (recentAppts != null && !recentAppts.isEmpty()) {
+                        for (Appointment appt : recentAppts) {
+                            String pName = appt.getPatientName() != null ? appt.getPatientName() : "Patient #" + appt.getPatientId();
+                            String pInitials = pName.length() >= 2 ? pName.substring(0, 2).toUpperCase() : "PT";
+                            String dName = appt.getDoctorName() != null ? "Dr. " + appt.getDoctorName() : "Doctor #" + appt.getDoctorId();
+                            String apptStatus = appt.getStatus() != null ? appt.getStatus() : "Scheduled";
+                            String badgeClass = "confirmed";
+                            if ("Pending".equalsIgnoreCase(apptStatus)) badgeClass = "pending";
+                            else if ("Cancelled".equalsIgnoreCase(apptStatus)) badgeClass = "pending";
+                %>
                 <div class="appointment">
 
                     <div class="patient">
 
                         <span class="avatar">
-                            AK
+                            <%= pInitials %>
                         </span>
-
 
                         <div>
 
                             <strong>
-                                Arun Kumar
+                                <%= pName %>
                             </strong>
 
                             <span>
-                                General Consultation
+                                <%= appt.getReason() != null ? appt.getReason() : "Consultation" %>
                             </span>
 
                         </div>
 
                     </div>
 
-
                     <span class="doctor">
-                        Dr. Rajesh
+                        <%= dName %>
                     </span>
-
 
                     <span class="time">
-                        09:30 AM
+                        <%= appt.getAppointmentDate() %> <%= appt.getAppointmentTime() %>
                     </span>
 
-
-                    <span class="status confirmed">
-                        Confirmed
+                    <span class="status <%= badgeClass %>">
+                        <%= apptStatus %>
                     </span>
 
                 </div>
-
-
-
-                <!-- APPOINTMENT 2 -->
-
-                <div class="appointment">
-
-                    <div class="patient">
-
-                        <span class="avatar">
-                            RS
-                        </span>
-
-
-                        <div>
-
-                            <strong>
-                                Rahul Sharma
-                            </strong>
-
-                            <span>
-                                Cardiology
-                            </span>
-
-                        </div>
-
-                    </div>
-
-
-                    <span class="doctor">
-                        Dr. Mehta
-                    </span>
-
-
-                    <span class="time">
-                        10:30 AM
-                    </span>
-
-
-                    <span class="status confirmed">
-                        Confirmed
-                    </span>
-
+                <%
+                        }
+                    } else {
+                %>
+                <div style="text-align: center; padding: 40px 20px; color: #8492a6;">
+                    <p style="margin: 0 0 10px; font-size: 15px;">No appointments found in database.</p>
+                    <a href="${pageContext.request.contextPath}/add-appointment.jsp" style="color: #0b9589; font-weight: 600; text-decoration: none;">+ Schedule First Appointment</a>
                 </div>
-
-
-
-                <!-- APPOINTMENT 3 -->
-
-                <div class="appointment">
-
-                    <div class="patient">
-
-                        <span class="avatar">
-                            PM
-                        </span>
-
-
-                        <div>
-
-                            <strong>
-                                Priya Mehta
-                            </strong>
-
-                            <span>
-                                Dermatology
-                            </span>
-
-                        </div>
-
-                    </div>
-
-
-                    <span class="doctor">
-                        Dr. Anjali
-                    </span>
-
-
-                    <span class="time">
-                        12:00 PM
-                    </span>
-
-
-                    <span class="status pending">
-                        Pending
-                    </span>
-
-                </div>
-
-
-
-                <!-- APPOINTMENT 4 -->
-
-                <div class="appointment">
-
-                    <div class="patient">
-
-                        <span class="avatar">
-                            VK
-                        </span>
-
-
-                        <div>
-
-                            <strong>
-                                Vikas Kumar
-                            </strong>
-
-                            <span>
-                                Orthopedics
-                            </span>
-
-                        </div>
-
-                    </div>
-
-
-                    <span class="doctor">
-                        Dr. Arjun
-                    </span>
-
-
-                    <span class="time">
-                        02:30 PM
-                    </span>
-
-
-                    <span class="status confirmed">
-                        Confirmed
-                    </span>
-
-                </div>
+                <%
+                    }
+                %>
 
 
             </section>
