@@ -1,0 +1,404 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+
+<%@ page import="java.util.List" %>
+<%@ page import="com.hms.model.Bill" %>
+<%@ page import="com.hms.model.Patient" %>
+<%@ page import="com.hms.model.Appointment" %>
+<%@ page import="com.hms.dao.PatientDAO" %>
+<%@ page import="com.hms.dao.AppointmentDAO" %>
+
+<%
+    Bill bill = (Bill) request.getAttribute("bill");
+
+    if (bill == null) {
+        response.sendRedirect(
+            request.getContextPath()
+            + "/BillingServlet?action=list"
+        );
+        return;
+    }
+
+    PatientDAO patientDAO = new PatientDAO();
+    AppointmentDAO appointmentDAO = new AppointmentDAO();
+
+    List<Patient> patients = patientDAO.getAllPatients();
+    List<Appointment> appointments = appointmentDAO.getAllAppointments();
+
+    String error = request.getParameter("error");
+%>
+
+<!DOCTYPE html>
+<html>
+<head>
+
+    <meta charset="UTF-8">
+
+    <title>Edit Bill</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #f4f7fb;
+            padding: 30px;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        h1 {
+            color: #1e3a8a;
+            margin-bottom: 25px;
+        }
+
+        .bill-id {
+            background: #eff6ff;
+            color: #1e40af;
+            padding: 10px 12px;
+            border-radius: 7px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+            font-weight: bold;
+            color: #374151;
+        }
+
+        .required {
+            color: #dc2626;
+        }
+
+        .optional {
+            color: #6b7280;
+            font-size: 12px;
+            font-weight: normal;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 11px;
+            border: 1px solid #d1d5db;
+            border-radius: 7px;
+            font-size: 14px;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 12px;
+            border-radius: 7px;
+            margin-bottom: 20px;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        .update-btn {
+            border: none;
+            background: #2563eb;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 7px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .update-btn:hover {
+            background: #1d4ed8;
+        }
+
+        .cancel-btn {
+            text-decoration: none;
+            background: #e5e7eb;
+            color: #374151;
+            padding: 12px 20px;
+            border-radius: 7px;
+        }
+
+        .cancel-btn:hover {
+            background: #d1d5db;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Edit Bill</h1>
+
+    <div class="bill-id">
+        Bill ID: #<%= bill.getId() %>
+    </div>
+
+
+    <% if ("invalid".equals(error)) { %>
+
+        <div class="error">
+            Please enter valid bill information.
+        </div>
+
+    <% } else if ("failed".equals(error)) { %>
+
+        <div class="error">
+            Failed to update bill. Please try again.
+        </div>
+
+    <% } %>
+
+
+    <form action="${pageContext.request.contextPath}/BillingServlet"
+          method="post">
+
+        <input type="hidden"
+               name="action"
+               value="update">
+
+        <input type="hidden"
+               name="id"
+               value="<%= bill.getId() %>">
+
+
+        <!-- Patient -->
+
+        <div class="form-group">
+
+            <label>
+                Patient <span class="required">*</span>
+            </label>
+
+            <select name="patientId" required>
+
+                <option value="">
+                    -- Select Patient --
+                </option>
+
+                <% for (Patient patient : patients) { %>
+
+                    <option value="<%= patient.getId() %>"
+                        <%= patient.getId() == bill.getPatientId()
+                            ? "selected"
+                            : "" %>>
+
+                        <%= patient.getName() %>
+                        (ID: <%= patient.getId() %>)
+
+                    </option>
+
+                <% } %>
+
+            </select>
+
+        </div>
+
+
+        <!-- Appointment -->
+
+        <div class="form-group">
+
+            <label>
+                Appointment
+                <span class="optional">(Optional)</span>
+            </label>
+
+            <select name="appointmentId">
+
+                <option value="">
+                    -- No Appointment --
+                </option>
+
+                <% for (Appointment appointment : appointments) { %>
+
+                    <option value="<%= appointment.getId() %>"
+                        <%= appointment.getId() == bill.getAppointmentId()
+                            ? "selected"
+                            : "" %>>
+
+                        Appointment #<%= appointment.getId() %>
+                        -
+                        <%= appointment.getPatientName() %>
+                        -
+                        <%= appointment.getAppointmentDate() %>
+                        -
+                        <%= appointment.getAppointmentTime() %>
+
+                    </option>
+
+                <% } %>
+
+            </select>
+
+        </div>
+
+
+        <!-- Amount -->
+
+        <div class="form-group">
+
+            <label>
+                Amount (₹) <span class="required">*</span>
+            </label>
+
+            <input type="number"
+                   name="amount"
+                   step="0.01"
+                   min="0"
+                   value="<%= bill.getAmount() %>"
+                   required>
+
+        </div>
+
+
+        <!-- Payment Method -->
+
+        <div class="form-group">
+
+            <label>
+                Payment Method
+            </label>
+
+            <select name="paymentMethod">
+
+                <option value="">
+                    -- Select Payment Method --
+                </option>
+
+                <option value="Cash"
+                    <%= "Cash".equals(bill.getPaymentMethod())
+                        ? "selected"
+                        : "" %>>
+                    Cash
+                </option>
+
+                <option value="UPI"
+                    <%= "UPI".equals(bill.getPaymentMethod())
+                        ? "selected"
+                        : "" %>>
+                    UPI
+                </option>
+
+                <option value="Card"
+                    <%= "Card".equals(bill.getPaymentMethod())
+                        ? "selected"
+                        : "" %>>
+                    Card
+                </option>
+
+                <option value="Net Banking"
+                    <%= "Net Banking".equals(bill.getPaymentMethod())
+                        ? "selected"
+                        : "" %>>
+                    Net Banking
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <!-- Payment Status -->
+
+        <div class="form-group">
+
+            <label>
+                Payment Status
+            </label>
+
+            <select name="paymentStatus">
+
+                <option value="Pending"
+                    <%= "Pending".equalsIgnoreCase(bill.getPaymentStatus())
+                        ? "selected"
+                        : "" %>>
+                    Pending
+                </option>
+
+                <option value="Paid"
+                    <%= "Paid".equalsIgnoreCase(bill.getPaymentStatus())
+                        ? "selected"
+                        : "" %>>
+                    Paid
+                </option>
+
+                <option value="Cancelled"
+                    <%= "Cancelled".equalsIgnoreCase(bill.getPaymentStatus())
+                        ? "selected"
+                        : "" %>>
+                    Cancelled
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <!-- Bill Date -->
+
+        <div class="form-group">
+
+            <label>
+                Bill Date <span class="required">*</span>
+            </label>
+
+            <input type="date"
+                   name="billDate"
+                   value="<%= bill.getBillDate() %>"
+                   required>
+
+        </div>
+
+
+        <!-- Buttons -->
+
+        <div class="buttons">
+
+            <button type="submit"
+                    class="update-btn">
+                Update Bill
+            </button>
+
+            <a href="${pageContext.request.contextPath}/BillingServlet?action=list"
+               class="cancel-btn">
+                Cancel
+            </a>
+
+        </div>
+
+    </form>
+
+</div>
+
+</body>
+</html>
