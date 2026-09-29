@@ -21,17 +21,14 @@ public class AppointmentServlet extends HttpServlet {
 
     private AppointmentDAO appointmentDAO;
 
-
     // =========================
     // INITIALIZE
     // =========================
 
     @Override
     public void init() throws ServletException {
-
         appointmentDAO = new AppointmentDAO();
     }
-
 
     // =========================
     // GET REQUESTS
@@ -45,14 +42,12 @@ public class AppointmentServlet extends HttpServlet {
 
         String action = request.getParameter("action");
 
-
         // LIST
         if (action == null || "list".equals(action)) {
 
             listAppointments(request, response);
 
         }
-
 
         // SEARCH
         else if ("search".equals(action)) {
@@ -61,7 +56,6 @@ public class AppointmentServlet extends HttpServlet {
 
         }
 
-
         // EDIT
         else if ("edit".equals(action)) {
 
@@ -69,14 +63,12 @@ public class AppointmentServlet extends HttpServlet {
 
         }
 
-
         // DELETE
         else if ("delete".equals(action)) {
 
             deleteAppointment(request, response);
 
         }
-
 
         // UNKNOWN ACTION
         else {
@@ -87,7 +79,6 @@ public class AppointmentServlet extends HttpServlet {
             );
         }
     }
-
 
     // =========================
     // POST REQUESTS
@@ -101,7 +92,6 @@ public class AppointmentServlet extends HttpServlet {
 
         String action = request.getParameter("action");
 
-
         // ADD
         if ("add".equals(action)) {
 
@@ -109,14 +99,12 @@ public class AppointmentServlet extends HttpServlet {
 
         }
 
-
         // UPDATE
         else if ("update".equals(action)) {
 
             updateAppointment(request, response);
 
         }
-
 
         // UNKNOWN ACTION
         else {
@@ -127,7 +115,6 @@ public class AppointmentServlet extends HttpServlet {
             );
         }
     }
-
 
     // =========================
     // LIST APPOINTMENTS
@@ -151,7 +138,6 @@ public class AppointmentServlet extends HttpServlet {
         ).forward(request, response);
     }
 
-
     // =========================
     // ADD APPOINTMENT
     // =========================
@@ -163,38 +149,84 @@ public class AppointmentServlet extends HttpServlet {
 
         try {
 
+            // Patient ID
             int patientId = Integer.parseInt(
                 request.getParameter("patientId")
             );
 
+            // Doctor ID
             int doctorId = Integer.parseInt(
                 request.getParameter("doctorId")
             );
 
+            // Appointment Date
             Date appointmentDate = Date.valueOf(
                 request.getParameter("appointmentDate")
             );
 
-            Time appointmentTime = Time.valueOf(
-                request.getParameter("appointmentTime")
-            );
+            // Appointment Time
+            String timeText =
+                request.getParameter("appointmentTime");
 
+            /*
+             * HTML <input type="time"> normally sends:
+             *
+             * HH:mm
+             *
+             * Example:
+             * 19:40
+             *
+             * java.sql.Time.valueOf() expects:
+             *
+             * HH:mm:ss
+             *
+             * Example:
+             * 19:40:00
+             */
+
+            if (timeText != null && timeText.length() == 5) {
+
+                timeText = timeText + ":00";
+            }
+
+            Time appointmentTime =
+                Time.valueOf(timeText);
+
+            // Reason
             String reason =
                 request.getParameter("reason");
 
+            // Status
             String status =
                 request.getParameter("status");
 
-
-            // DEFAULT STATUS
-
-            if (status == null || status.trim().isEmpty()) {
+            // Default status
+            if (status == null ||
+                status.trim().isEmpty()) {
 
                 status = "Scheduled";
             }
 
+            // =========================
+            // VALIDATION
+            // =========================
 
+            if (patientId <= 0 ||
+                doctorId <= 0 ||
+                reason == null ||
+                reason.trim().isEmpty()) {
+
+                response.sendRedirect(
+                    request.getContextPath()
+                    + "/add-appointment.jsp?error=invalid"
+                );
+
+                return;
+            }
+
+            // =========================
             // CREATE APPOINTMENT
+            // =========================
 
             Appointment appointment =
                 new Appointment();
@@ -211,18 +243,22 @@ public class AppointmentServlet extends HttpServlet {
                 appointmentTime
             );
 
-            appointment.setReason(reason);
+            appointment.setReason(
+                reason.trim()
+            );
 
-            appointment.setStatus(status);
+            appointment.setStatus(
+                status
+            );
 
-
+            // =========================
             // SAVE
+            // =========================
 
             boolean success =
                 appointmentDAO.addAppointment(
                     appointment
                 );
-
 
             if (success) {
 
@@ -239,15 +275,22 @@ public class AppointmentServlet extends HttpServlet {
                 );
             }
 
+        }
 
-        } catch (IllegalArgumentException e) {
+        // Invalid date/time/number
+        catch (IllegalArgumentException e) {
+
+            e.printStackTrace();
 
             response.sendRedirect(
                 request.getContextPath()
                 + "/add-appointment.jsp?error=invalid"
             );
 
-        } catch (Exception e) {
+        }
+
+        // Database or other error
+        catch (Exception e) {
 
             e.printStackTrace();
 
@@ -257,7 +300,6 @@ public class AppointmentServlet extends HttpServlet {
             );
         }
     }
-
 
     // =========================
     // EDIT APPOINTMENT
@@ -277,7 +319,6 @@ public class AppointmentServlet extends HttpServlet {
             Appointment appointment =
                 appointmentDAO.getAppointmentById(id);
 
-
             if (appointment == null) {
 
                 response.sendRedirect(
@@ -288,19 +329,18 @@ public class AppointmentServlet extends HttpServlet {
                 return;
             }
 
-
             request.setAttribute(
                 "appointment",
                 appointment
             );
 
-
             request.getRequestDispatcher(
                 "/edit-appointment.jsp"
             ).forward(request, response);
 
+        }
 
-        } catch (NumberFormatException e) {
+        catch (NumberFormatException e) {
 
             response.sendRedirect(
                 request.getContextPath()
@@ -308,7 +348,6 @@ public class AppointmentServlet extends HttpServlet {
             );
         }
     }
-
 
     // =========================
     // UPDATE APPOINTMENT
@@ -321,38 +360,87 @@ public class AppointmentServlet extends HttpServlet {
 
         try {
 
+            // Appointment ID
             int id = Integer.parseInt(
                 request.getParameter("id")
             );
 
+            // Patient ID
             int patientId = Integer.parseInt(
                 request.getParameter("patientId")
             );
 
+            // Doctor ID
             int doctorId = Integer.parseInt(
                 request.getParameter("doctorId")
             );
 
+            // Date
             Date appointmentDate = Date.valueOf(
                 request.getParameter("appointmentDate")
             );
 
-            Time appointmentTime = Time.valueOf(
-                request.getParameter("appointmentTime")
-            );
+            // Time
+            String timeText =
+                request.getParameter("appointmentTime");
 
+            /*
+             * HTML time input:
+             *
+             * HH:mm
+             *
+             * Convert to:
+             *
+             * HH:mm:ss
+             */
+
+            if (timeText != null &&
+                timeText.length() == 5) {
+
+                timeText = timeText + ":00";
+            }
+
+            Time appointmentTime =
+                Time.valueOf(timeText);
+
+            // Reason
             String reason =
                 request.getParameter("reason");
 
+            // Status
             String status =
                 request.getParameter("status");
 
-
-            if (status == null || status.trim().isEmpty()) {
+            // Default status
+            if (status == null ||
+                status.trim().isEmpty()) {
 
                 status = "Scheduled";
             }
 
+            // =========================
+            // VALIDATION
+            // =========================
+
+            if (id <= 0 ||
+                patientId <= 0 ||
+                doctorId <= 0 ||
+                reason == null ||
+                reason.trim().isEmpty()) {
+
+                response.sendRedirect(
+                    request.getContextPath()
+                    + "/AppointmentServlet?action=edit&id="
+                    + id
+                    + "&error=invalid"
+                );
+
+                return;
+            }
+
+            // =========================
+            // CREATE APPOINTMENT
+            // =========================
 
             Appointment appointment =
                 new Appointment();
@@ -371,16 +459,22 @@ public class AppointmentServlet extends HttpServlet {
                 appointmentTime
             );
 
-            appointment.setReason(reason);
+            appointment.setReason(
+                reason.trim()
+            );
 
-            appointment.setStatus(status);
+            appointment.setStatus(
+                status
+            );
 
+            // =========================
+            // UPDATE DATABASE
+            // =========================
 
             boolean success =
                 appointmentDAO.updateAppointment(
                     appointment
                 );
-
 
             if (success) {
 
@@ -399,15 +493,20 @@ public class AppointmentServlet extends HttpServlet {
                 );
             }
 
+        }
 
-        } catch (IllegalArgumentException e) {
+        catch (IllegalArgumentException e) {
+
+            e.printStackTrace();
 
             response.sendRedirect(
                 request.getContextPath()
                 + "/AppointmentServlet?action=list"
             );
 
-        } catch (Exception e) {
+        }
+
+        catch (Exception e) {
 
             e.printStackTrace();
 
@@ -417,7 +516,6 @@ public class AppointmentServlet extends HttpServlet {
             );
         }
     }
-
 
     // =========================
     // DELETE APPOINTMENT
@@ -437,7 +535,6 @@ public class AppointmentServlet extends HttpServlet {
             boolean success =
                 appointmentDAO.deleteAppointment(id);
 
-
             if (success) {
 
                 response.sendRedirect(
@@ -453,8 +550,9 @@ public class AppointmentServlet extends HttpServlet {
                 );
             }
 
+        }
 
-        } catch (NumberFormatException e) {
+        catch (NumberFormatException e) {
 
             response.sendRedirect(
                 request.getContextPath()
@@ -462,7 +560,6 @@ public class AppointmentServlet extends HttpServlet {
             );
         }
     }
-
 
     // =========================
     // SEARCH APPOINTMENTS
@@ -476,16 +573,15 @@ public class AppointmentServlet extends HttpServlet {
         String keyword =
             request.getParameter("keyword");
 
-
         if (keyword == null) {
 
             keyword = "";
         }
 
-
         List<Appointment> appointments =
-            appointmentDAO.searchAppointments(keyword);
-
+            appointmentDAO.searchAppointments(
+                keyword
+            );
 
         request.setAttribute(
             "appointments",
@@ -496,7 +592,6 @@ public class AppointmentServlet extends HttpServlet {
             "searchKeyword",
             keyword
         );
-
 
         request.getRequestDispatcher(
             "/appointments.jsp"
