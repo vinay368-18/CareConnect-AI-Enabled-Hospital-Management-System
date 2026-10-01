@@ -5,12 +5,14 @@ import java.util.List;
 
 import com.hms.dao.DoctorDAO;
 import com.hms.model.Doctor;
+import com.hms.model.User;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 @WebServlet("/DoctorServlet")
 public class DoctorServlet extends HttpServlet {
@@ -24,43 +26,203 @@ public class DoctorServlet extends HttpServlet {
         doctorDAO = new DoctorDAO();
     }
 
+    // =========================
+    // AUTHORIZATION
+    // =========================
+
+    private User getLoggedInUser(
+            HttpServletRequest request) {
+
+        HttpSession session =
+                request.getSession(false);
+
+        if (session == null) {
+            return null;
+        }
+
+        Object userObject =
+                session.getAttribute("user");
+
+        if (!(userObject instanceof User)) {
+            return null;
+        }
+
+        return (User) userObject;
+    }
+
+    private boolean isAdmin(
+            HttpServletRequest request) {
+
+        User user =
+                getLoggedInUser(request);
+
+        return user != null
+                && "ADMIN".equalsIgnoreCase(
+                        user.getRole()
+                );
+    }
+
+    private boolean isAdminOrReceptionist(
+            HttpServletRequest request) {
+
+        User user =
+                getLoggedInUser(request);
+
+        if (user == null) {
+            return false;
+        }
+
+        String role =
+                user.getRole();
+
+        return "ADMIN".equalsIgnoreCase(role)
+                || "RECEPTIONIST".equalsIgnoreCase(role);
+    }
+
+    private boolean checkLogin(
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws IOException {
+
+        User user =
+                getLoggedInUser(request);
+
+        if (user == null) {
+
+            response.sendRedirect(
+                request.getContextPath()
+                + "/login.jsp"
+            );
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean checkAdmin(
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws IOException {
+
+        if (!checkLogin(request, response)) {
+            return false;
+        }
+
+        if (!isAdmin(request)) {
+
+            response.sendRedirect(
+                request.getContextPath()
+                + "/DoctorServlet?action=list&error=unauthorized"
+            );
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean checkAdminOrReceptionist(
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws IOException {
+
+        if (!checkLogin(request, response)) {
+            return false;
+        }
+
+        if (!isAdminOrReceptionist(request)) {
+
+            response.sendRedirect(
+                request.getContextPath()
+                + "/dashboard.jsp?error=unauthorized"
+            );
+
+            return false;
+        }
+
+        return true;
+    }
 
     // =========================
     // GET REQUESTS
     // =========================
 
     @Override
-    protected void doGet(HttpServletRequest request,
-                         HttpServletResponse response)
+    protected void doGet(
+            HttpServletRequest request,
+            HttpServletResponse response)
             throws ServletException, IOException {
 
-        String action = request.getParameter("action");
+        String action =
+                request.getParameter("action");
 
+        // =========================
         // LIST
-        if (action == null || action.equals("list")) {
+        // ADMIN + RECEPTIONIST
+        // =========================
 
-            listDoctors(request, response);
+        if (action == null
+                || "list".equals(action)) {
+
+            if (!checkAdminOrReceptionist(
+                    request,
+                    response)) {
+
+                return;
+            }
+
+            listDoctors(
+                    request,
+                    response
+            );
 
         }
 
+        // =========================
         // SEARCH
+        // ADMIN + RECEPTIONIST
+        // =========================
+
         else if ("search".equals(action)) {
 
-            searchDoctors(request, response);
+            if (!checkAdminOrReceptionist(
+                    request,
+                    response)) {
+
+                return;
+            }
+
+            searchDoctors(
+                    request,
+                    response
+            );
 
         }
 
+        // =========================
         // EDIT
+        // ADMIN ONLY
+        // =========================
+
         else if ("edit".equals(action)) {
+
+            if (!checkAdmin(
+                    request,
+                    response)) {
+
+                return;
+            }
 
             try {
 
-                int id = Integer.parseInt(
-                    request.getParameter("id")
-                );
+                int id =
+                        Integer.parseInt(
+                            request.getParameter("id")
+                        );
 
                 Doctor doctor =
-                    doctorDAO.getDoctorById(id);
+                        doctorDAO.getDoctorById(id);
 
                 if (doctor == null) {
 
@@ -73,13 +235,16 @@ public class DoctorServlet extends HttpServlet {
                 }
 
                 request.setAttribute(
-                    "doctor",
-                    doctor
+                        "doctor",
+                        doctor
                 );
 
                 request.getRequestDispatcher(
-                    "/edit-doctor.jsp"
-                ).forward(request, response);
+                        "/edit-doctor.jsp"
+                ).forward(
+                        request,
+                        response
+                );
 
             } catch (NumberFormatException e) {
 
@@ -90,14 +255,30 @@ public class DoctorServlet extends HttpServlet {
             }
         }
 
+        // =========================
         // DELETE
+        // ADMIN ONLY
+        // =========================
+
         else if ("delete".equals(action)) {
 
-            deleteDoctor(request, response);
+            if (!checkAdmin(
+                    request,
+                    response)) {
 
+                return;
+            }
+
+            deleteDoctor(
+                    request,
+                    response
+            );
         }
 
+        // =========================
         // UNKNOWN ACTION
+        // =========================
+
         else {
 
             response.sendRedirect(
@@ -106,37 +287,65 @@ public class DoctorServlet extends HttpServlet {
             );
         }
     }
-
 
     // =========================
     // POST REQUESTS
     // =========================
 
     @Override
-    protected void doPost(HttpServletRequest request,
-                          HttpServletResponse response)
+    protected void doPost(
+            HttpServletRequest request,
+            HttpServletResponse response)
             throws ServletException, IOException {
 
-        request.setCharacterEncoding("UTF-8");
-        response.setCharacterEncoding("UTF-8");
+        if (!checkAdmin(
+                request,
+                response)) {
 
-        String action = request.getParameter("action");
+            return;
+        }
 
+        request.setCharacterEncoding(
+                "UTF-8"
+        );
+
+        response.setCharacterEncoding(
+                "UTF-8"
+        );
+
+        String action =
+                request.getParameter("action");
+
+        // =========================
         // ADD
+        // ADMIN ONLY
+        // =========================
+
         if ("add".equals(action)) {
 
-            addDoctor(request, response);
-
+            addDoctor(
+                    request,
+                    response
+            );
         }
 
+        // =========================
         // UPDATE
+        // ADMIN ONLY
+        // =========================
+
         else if ("update".equals(action)) {
 
-            updateDoctor(request, response);
-
+            updateDoctor(
+                    request,
+                    response
+            );
         }
 
+        // =========================
         // UNKNOWN ACTION
+        // =========================
+
         else {
 
             response.sendRedirect(
@@ -146,111 +355,127 @@ public class DoctorServlet extends HttpServlet {
         }
     }
 
-
     // =========================
     // LIST DOCTORS
     // =========================
 
-    private void listDoctors(HttpServletRequest request,
-                             HttpServletResponse response)
+    private void listDoctors(
+            HttpServletRequest request,
+            HttpServletResponse response)
             throws ServletException, IOException {
 
         List<Doctor> doctors =
-            doctorDAO.getAllDoctors();
+                doctorDAO.getAllDoctors();
 
         request.setAttribute(
-            "doctors",
-            doctors
+                "doctors",
+                doctors
         );
 
         request.getRequestDispatcher(
-            "/doctors.jsp"
-        ).forward(request, response);
+                "/doctors.jsp"
+        ).forward(
+                request,
+                response
+        );
     }
-
 
     // =========================
     // SEARCH DOCTORS
     // =========================
 
-    private void searchDoctors(HttpServletRequest request,
-                               HttpServletResponse response)
+    private void searchDoctors(
+            HttpServletRequest request,
+            HttpServletResponse response)
             throws ServletException, IOException {
 
         String keyword =
-            request.getParameter("keyword");
+                request.getParameter("keyword");
 
         if (keyword == null) {
             keyword = "";
         }
 
         List<Doctor> doctors =
-            doctorDAO.searchDoctors(keyword);
+                doctorDAO.searchDoctors(
+                        keyword
+                );
 
         request.setAttribute(
-            "doctors",
-            doctors
+                "doctors",
+                doctors
         );
 
         request.setAttribute(
-            "searchKeyword",
-            keyword
+                "searchKeyword",
+                keyword
         );
 
         request.getRequestDispatcher(
-            "/doctors.jsp"
-        ).forward(request, response);
+                "/doctors.jsp"
+        ).forward(
+                request,
+                response
+        );
     }
-
 
     // =========================
     // ADD DOCTOR
     // =========================
 
-    private void addDoctor(HttpServletRequest request,
-                           HttpServletResponse response)
+    private void addDoctor(
+            HttpServletRequest request,
+            HttpServletResponse response)
             throws IOException {
 
         String name =
-            request.getParameter("name");
+                request.getParameter("name");
 
         String specialization =
-            request.getParameter("specialization");
+                request.getParameter("specialization");
 
         String phone =
-            request.getParameter("phone");
+                request.getParameter("phone");
 
         String email =
-            request.getParameter("email");
+                request.getParameter("email");
 
         String experienceText =
-            request.getParameter("experience");
+                request.getParameter("experience");
 
         String feeText =
-            request.getParameter("consultationFee");
+                request.getParameter("consultationFee");
 
-        if (name == null || name.trim().isEmpty() ||
-            specialization == null || specialization.trim().isEmpty() ||
-            experienceText == null || feeText == null) {
+        if (name == null
+                || name.trim().isEmpty()
+                || specialization == null
+                || specialization.trim().isEmpty()
+                || experienceText == null
+                || feeText == null) {
 
             response.sendRedirect(
                 request.getContextPath()
                 + "/add-doctor.jsp?error=invalid"
             );
+
             return;
         }
 
         try {
 
             int experience =
-                Integer.parseInt(experienceText.trim());
+                    Integer.parseInt(
+                            experienceText.trim()
+                    );
 
             double consultationFee =
-                Double.parseDouble(feeText.trim());
+                    Double.parseDouble(
+                            feeText.trim()
+                    );
 
-            // VALIDATION
-
-            if (experience < 0 || experience > 70 || consultationFee < 0) {
+            if (experience < 0
+                    || experience > 70
+                    || consultationFee < 0) {
 
                 response.sendRedirect(
                     request.getContextPath()
@@ -261,19 +486,36 @@ public class DoctorServlet extends HttpServlet {
             }
 
             Doctor doctor =
-                new Doctor();
+                    new Doctor();
 
-            doctor.setName(name);
-            doctor.setSpecialization(specialization);
-            doctor.setPhone(phone);
-            doctor.setEmail(email);
-            doctor.setExperience(experience);
+            doctor.setName(
+                    name
+            );
+
+            doctor.setSpecialization(
+                    specialization
+            );
+
+            doctor.setPhone(
+                    phone
+            );
+
+            doctor.setEmail(
+                    email
+            );
+
+            doctor.setExperience(
+                    experience
+            );
+
             doctor.setConsultationFee(
-                consultationFee
+                    consultationFee
             );
 
             boolean success =
-                doctorDAO.addDoctor(doctor);
+                    doctorDAO.addDoctor(
+                            doctor
+                    );
 
             if (success) {
 
@@ -299,27 +541,36 @@ public class DoctorServlet extends HttpServlet {
         }
     }
 
-
     // =========================
     // UPDATE DOCTOR
     // =========================
 
-    private void updateDoctor(HttpServletRequest request,
-                              HttpServletResponse response)
+    private void updateDoctor(
+            HttpServletRequest request,
+            HttpServletResponse response)
             throws IOException {
+
+        int id = 0;
 
         try {
 
-            int id =
-                Integer.parseInt(
-                    request.getParameter("id")
-                );
+            id =
+                    Integer.parseInt(
+                        request.getParameter("id")
+                    );
 
-            String name = request.getParameter("name");
-            String specialization = request.getParameter("specialization");
+            String name =
+                    request.getParameter("name");
 
-            if (name == null || name.trim().isEmpty() ||
-                specialization == null || specialization.trim().isEmpty()) {
+            String specialization =
+                    request.getParameter(
+                            "specialization"
+                    );
+
+            if (name == null
+                    || name.trim().isEmpty()
+                    || specialization == null
+                    || specialization.trim().isEmpty()) {
 
                 response.sendRedirect(
                     request.getContextPath()
@@ -327,22 +578,27 @@ public class DoctorServlet extends HttpServlet {
                     + id
                     + "&error=invalid"
                 );
+
                 return;
             }
 
             int experience =
-                Integer.parseInt(
-                    request.getParameter("experience")
-                );
+                    Integer.parseInt(
+                        request.getParameter(
+                                "experience"
+                        )
+                    );
 
             double consultationFee =
-                Double.parseDouble(
-                    request.getParameter("consultationFee")
-                );
+                    Double.parseDouble(
+                        request.getParameter(
+                                "consultationFee"
+                        )
+                    );
 
-            // VALIDATION
-
-            if (experience < 0 || experience > 70 || consultationFee < 0) {
+            if (experience < 0
+                    || experience > 70
+                    || consultationFee < 0) {
 
                 response.sendRedirect(
                     request.getContextPath()
@@ -355,34 +611,44 @@ public class DoctorServlet extends HttpServlet {
             }
 
             Doctor doctor =
-                new Doctor();
+                    new Doctor();
 
-            doctor.setId(id);
+            doctor.setId(
+                    id
+            );
 
             doctor.setName(
-                request.getParameter("name")
+                    name
             );
 
             doctor.setSpecialization(
-                request.getParameter("specialization")
+                    specialization
             );
 
             doctor.setPhone(
-                request.getParameter("phone")
+                    request.getParameter(
+                            "phone"
+                    )
             );
 
             doctor.setEmail(
-                request.getParameter("email")
+                    request.getParameter(
+                            "email"
+                    )
             );
 
-            doctor.setExperience(experience);
+            doctor.setExperience(
+                    experience
+            );
 
             doctor.setConsultationFee(
-                consultationFee
+                    consultationFee
             );
 
             boolean success =
-                doctorDAO.updateDoctor(doctor);
+                    doctorDAO.updateDoctor(
+                            doctor
+                    );
 
             if (success) {
 
@@ -410,24 +676,26 @@ public class DoctorServlet extends HttpServlet {
         }
     }
 
-
     // =========================
     // DELETE DOCTOR
     // =========================
 
-    private void deleteDoctor(HttpServletRequest request,
-                              HttpServletResponse response)
+    private void deleteDoctor(
+            HttpServletRequest request,
+            HttpServletResponse response)
             throws IOException {
 
         try {
 
             int id =
-                Integer.parseInt(
-                    request.getParameter("id")
-                );
+                    Integer.parseInt(
+                        request.getParameter("id")
+                    );
 
             boolean success =
-                doctorDAO.deleteDoctor(id);
+                    doctorDAO.deleteDoctor(
+                            id
+                    );
 
             if (success) {
 
@@ -452,5 +720,4 @@ public class DoctorServlet extends HttpServlet {
             );
         }
     }
-
 }
