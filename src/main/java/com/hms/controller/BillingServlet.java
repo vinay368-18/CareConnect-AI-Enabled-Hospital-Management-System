@@ -6,12 +6,14 @@ import java.util.List;
 
 import com.hms.dao.BillingDAO;
 import com.hms.model.Bill;
+import com.hms.model.User;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 @WebServlet("/BillingServlet")
 public class BillingServlet extends HttpServlet {
@@ -26,13 +28,84 @@ public class BillingServlet extends HttpServlet {
     }
 
     // =========================
+    // AUTHORIZATION
+    // =========================
+
+    private boolean isAuthorized(HttpServletRequest request) {
+
+        HttpSession session = request.getSession(false);
+
+        if (session == null) {
+            return false;
+        }
+
+        User user = (User) session.getAttribute("user");
+
+        if (user == null) {
+            return false;
+        }
+
+        String role = user.getRole();
+
+        return "ADMIN".equalsIgnoreCase(role)
+                || "RECEPTIONIST".equalsIgnoreCase(role);
+    }
+
+    private boolean checkAuthorization(
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws IOException {
+
+        HttpSession session = request.getSession(false);
+
+        if (session == null) {
+
+            response.sendRedirect(
+                request.getContextPath()
+                + "/login.jsp"
+            );
+
+            return false;
+        }
+
+        User user = (User) session.getAttribute("user");
+
+        if (user == null) {
+
+            response.sendRedirect(
+                request.getContextPath()
+                + "/login.jsp"
+            );
+
+            return false;
+        }
+
+        if (!isAuthorized(request)) {
+
+            response.sendRedirect(
+                request.getContextPath()
+                + "/dashboard.jsp?error=unauthorized"
+            );
+
+            return false;
+        }
+
+        return true;
+    }
+
+    // =========================
     // GET REQUESTS
     // =========================
 
     @Override
-    protected void doGet(HttpServletRequest request,
-                         HttpServletResponse response)
+    protected void doGet(
+            HttpServletRequest request,
+            HttpServletResponse response)
             throws ServletException, IOException {
+
+        if (!checkAuthorization(request, response)) {
+            return;
+        }
 
         String action = request.getParameter("action");
 
@@ -61,15 +134,19 @@ public class BillingServlet extends HttpServlet {
         }
     }
 
-
     // =========================
     // POST REQUESTS
     // =========================
 
     @Override
-    protected void doPost(HttpServletRequest request,
-                          HttpServletResponse response)
+    protected void doPost(
+            HttpServletRequest request,
+            HttpServletResponse response)
             throws ServletException, IOException {
+
+        if (!checkAuthorization(request, response)) {
+            return;
+        }
 
         request.setCharacterEncoding("UTF-8");
         response.setCharacterEncoding("UTF-8");
@@ -93,39 +170,53 @@ public class BillingServlet extends HttpServlet {
         }
     }
 
-
     // =========================
     // LIST BILLS
     // =========================
 
-    private void listBills(HttpServletRequest request,
-                           HttpServletResponse response)
+    private void listBills(
+            HttpServletRequest request,
+            HttpServletResponse response)
             throws ServletException, IOException {
 
-        List<Bill> bills = billingDAO.getAllBills();
+        List<Bill> bills =
+                billingDAO.getAllBills();
 
-        request.setAttribute("bills", bills);
+        request.setAttribute(
+                "bills",
+                bills
+        );
 
-        request.getRequestDispatcher("/billing.jsp")
-               .forward(request, response);
+        request.getRequestDispatcher(
+                "/billing.jsp"
+        ).forward(
+                request,
+                response
+        );
     }
-
 
     // =========================
     // ADD BILL
     // =========================
 
-    private void addBill(HttpServletRequest request,
-                         HttpServletResponse response)
+    private void addBill(
+            HttpServletRequest request,
+            HttpServletResponse response)
             throws IOException {
 
         try {
 
             int patientId =
-                Integer.parseInt(request.getParameter("patientId"));
+                    Integer.parseInt(
+                            request.getParameter(
+                                    "patientId"
+                            )
+                    );
 
             String appointmentText =
-                request.getParameter("appointmentId");
+                    request.getParameter(
+                            "appointmentId"
+                    );
 
             int appointmentId = 0;
 
@@ -133,22 +224,35 @@ public class BillingServlet extends HttpServlet {
                     && !appointmentText.trim().isEmpty()) {
 
                 appointmentId =
-                    Integer.parseInt(appointmentText);
+                        Integer.parseInt(
+                                appointmentText
+                        );
             }
 
             double amount =
-                Double.parseDouble(request.getParameter("amount"));
+                    Double.parseDouble(
+                            request.getParameter(
+                                    "amount"
+                            )
+                    );
 
             String paymentMethod =
-                request.getParameter("paymentMethod");
+                    request.getParameter(
+                            "paymentMethod"
+                    );
 
             String paymentStatus =
-                request.getParameter("paymentStatus");
+                    request.getParameter(
+                            "paymentStatus"
+                    );
 
             String billDateText =
-                request.getParameter("billDate");
+                    request.getParameter(
+                            "billDate"
+                    );
 
             // Validation
+
             if (patientId <= 0
                     || amount < 0
                     || billDateText == null
@@ -163,8 +267,9 @@ public class BillingServlet extends HttpServlet {
             }
 
             Date billDate =
-                Date.valueOf(billDateText.trim());
-
+                    Date.valueOf(
+                            billDateText.trim()
+                    );
 
             if (paymentStatus == null
                     || paymentStatus.trim().isEmpty()) {
@@ -172,20 +277,36 @@ public class BillingServlet extends HttpServlet {
                 paymentStatus = "Pending";
             }
 
-
             Bill bill = new Bill();
 
-            bill.setPatientId(patientId);
-            bill.setAppointmentId(appointmentId);
-            bill.setAmount(amount);
-            bill.setPaymentMethod(paymentMethod);
-            bill.setPaymentStatus(paymentStatus);
-            bill.setBillDate(billDate);
+            bill.setPatientId(
+                    patientId
+            );
 
+            bill.setAppointmentId(
+                    appointmentId
+            );
+
+            bill.setAmount(
+                    amount
+            );
+
+            bill.setPaymentMethod(
+                    paymentMethod
+            );
+
+            bill.setPaymentStatus(
+                    paymentStatus
+            );
+
+            bill.setBillDate(
+                    billDate
+            );
 
             boolean success =
-                billingDAO.addBill(bill);
-
+                    billingDAO.addBill(
+                            bill
+                    );
 
             if (success) {
 
@@ -201,7 +322,6 @@ public class BillingServlet extends HttpServlet {
                     + "/add-bill.jsp?error=failed"
                 );
             }
-
 
         } catch (IllegalArgumentException e) {
 
@@ -223,23 +343,28 @@ public class BillingServlet extends HttpServlet {
         }
     }
 
-
     // =========================
     // EDIT BILL
     // =========================
 
-    private void editBill(HttpServletRequest request,
-                          HttpServletResponse response)
+    private void editBill(
+            HttpServletRequest request,
+            HttpServletResponse response)
             throws ServletException, IOException {
 
         try {
 
             int id =
-                Integer.parseInt(request.getParameter("id"));
+                    Integer.parseInt(
+                            request.getParameter(
+                                    "id"
+                            )
+                    );
 
             Bill bill =
-                billingDAO.getBillById(id);
-
+                    billingDAO.getBillById(
+                            id
+                    );
 
             if (bill == null) {
 
@@ -251,13 +376,17 @@ public class BillingServlet extends HttpServlet {
                 return;
             }
 
-
-            request.setAttribute("bill", bill);
+            request.setAttribute(
+                    "bill",
+                    bill
+            );
 
             request.getRequestDispatcher(
-                    "/edit-bill.jsp")
-                   .forward(request, response);
-
+                    "/edit-bill.jsp"
+            ).forward(
+                    request,
+                    response
+            );
 
         } catch (NumberFormatException e) {
 
@@ -268,13 +397,13 @@ public class BillingServlet extends HttpServlet {
         }
     }
 
-
     // =========================
     // UPDATE BILL
     // =========================
 
-    private void updateBill(HttpServletRequest request,
-                            HttpServletResponse response)
+    private void updateBill(
+            HttpServletRequest request,
+            HttpServletResponse response)
             throws IOException {
 
         int id = 0;
@@ -282,13 +411,23 @@ public class BillingServlet extends HttpServlet {
         try {
 
             id =
-                Integer.parseInt(request.getParameter("id"));
+                    Integer.parseInt(
+                            request.getParameter(
+                                    "id"
+                            )
+                    );
 
             int patientId =
-                Integer.parseInt(request.getParameter("patientId"));
+                    Integer.parseInt(
+                            request.getParameter(
+                                    "patientId"
+                            )
+                    );
 
             String appointmentText =
-                request.getParameter("appointmentId");
+                    request.getParameter(
+                            "appointmentId"
+                    );
 
             int appointmentId = 0;
 
@@ -296,20 +435,32 @@ public class BillingServlet extends HttpServlet {
                     && !appointmentText.trim().isEmpty()) {
 
                 appointmentId =
-                    Integer.parseInt(appointmentText);
+                        Integer.parseInt(
+                                appointmentText
+                        );
             }
 
             double amount =
-                Double.parseDouble(request.getParameter("amount"));
+                    Double.parseDouble(
+                            request.getParameter(
+                                    "amount"
+                            )
+                    );
 
             String paymentMethod =
-                request.getParameter("paymentMethod");
+                    request.getParameter(
+                            "paymentMethod"
+                    );
 
             String paymentStatus =
-                request.getParameter("paymentStatus");
+                    request.getParameter(
+                            "paymentStatus"
+                    );
 
             String billDateText =
-                request.getParameter("billDate");
+                    request.getParameter(
+                            "billDate"
+                    );
 
             if (id <= 0
                     || patientId <= 0
@@ -328,8 +479,9 @@ public class BillingServlet extends HttpServlet {
             }
 
             Date billDate =
-                Date.valueOf(billDateText.trim());
-
+                    Date.valueOf(
+                            billDateText.trim()
+                    );
 
             if (paymentStatus == null
                     || paymentStatus.trim().isEmpty()) {
@@ -337,21 +489,40 @@ public class BillingServlet extends HttpServlet {
                 paymentStatus = "Pending";
             }
 
-
             Bill bill = new Bill();
 
-            bill.setId(id);
-            bill.setPatientId(patientId);
-            bill.setAppointmentId(appointmentId);
-            bill.setAmount(amount);
-            bill.setPaymentMethod(paymentMethod);
-            bill.setPaymentStatus(paymentStatus);
-            bill.setBillDate(billDate);
+            bill.setId(
+                    id
+            );
 
+            bill.setPatientId(
+                    patientId
+            );
+
+            bill.setAppointmentId(
+                    appointmentId
+            );
+
+            bill.setAmount(
+                    amount
+            );
+
+            bill.setPaymentMethod(
+                    paymentMethod
+            );
+
+            bill.setPaymentStatus(
+                    paymentStatus
+            );
+
+            bill.setBillDate(
+                    billDate
+            );
 
             boolean success =
-                billingDAO.updateBill(bill);
-
+                    billingDAO.updateBill(
+                            bill
+                    );
 
             if (success) {
 
@@ -370,7 +541,6 @@ public class BillingServlet extends HttpServlet {
                 );
             }
 
-
         } catch (Exception e) {
 
             e.printStackTrace();
@@ -384,23 +554,28 @@ public class BillingServlet extends HttpServlet {
         }
     }
 
-
     // =========================
     // DELETE BILL
     // =========================
 
-    private void deleteBill(HttpServletRequest request,
-                            HttpServletResponse response)
+    private void deleteBill(
+            HttpServletRequest request,
+            HttpServletResponse response)
             throws IOException {
 
         try {
 
             int id =
-                Integer.parseInt(request.getParameter("id"));
+                    Integer.parseInt(
+                            request.getParameter(
+                                    "id"
+                            )
+                    );
 
             boolean success =
-                billingDAO.deleteBill(id);
-
+                    billingDAO.deleteBill(
+                            id
+                    );
 
             if (success) {
 
@@ -417,7 +592,6 @@ public class BillingServlet extends HttpServlet {
                 );
             }
 
-
         } catch (NumberFormatException e) {
 
             response.sendRedirect(
@@ -427,37 +601,44 @@ public class BillingServlet extends HttpServlet {
         }
     }
 
-
     // =========================
     // SEARCH BILLS
     // =========================
 
-    private void searchBills(HttpServletRequest request,
-                             HttpServletResponse response)
+    private void searchBills(
+            HttpServletRequest request,
+            HttpServletResponse response)
             throws ServletException, IOException {
 
         String keyword =
-            request.getParameter("keyword");
+                request.getParameter(
+                        "keyword"
+                );
 
         if (keyword == null) {
             keyword = "";
         }
 
-
         List<Bill> bills =
-            billingDAO.searchBills(keyword);
-
-
-        request.setAttribute("bills", bills);
+                billingDAO.searchBills(
+                        keyword
+                );
 
         request.setAttribute(
-            "searchKeyword",
-            keyword
+                "bills",
+                bills
         );
 
+        request.setAttribute(
+                "searchKeyword",
+                keyword
+        );
 
         request.getRequestDispatcher(
-                "/billing.jsp")
-               .forward(request, response);
+                "/billing.jsp"
+        ).forward(
+                request,
+                response
+        );
     }
 }
