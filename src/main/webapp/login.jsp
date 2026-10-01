@@ -7,12 +7,35 @@
 <head>
 
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
 
     <title>CareConnect | Login</title>
 
     <link rel="stylesheet"
           href="${pageContext.request.contextPath}/css/style.css">
+
+    <style>
+
+        .register-link {
+            text-align: center;
+            margin-top: 18px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .register-link a {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .register-link a:hover {
+            text-decoration: underline;
+        }
+
+    </style>
 
 </head>
 
@@ -196,29 +219,90 @@
 
             </div>
 
+
+            <!-- =================================================
+                 MESSAGES
+                 ================================================= -->
+
             <%
+
                 String error = request.getParameter("error");
+
                 String msg = request.getParameter("msg");
+
+                String registered =
+                    request.getParameter("registered");
+
+
                 if ("invalid".equals(error)) {
+
             %>
-                <div style="background: #fde8e8; color: #9b1c1c; border-left: 4px solid #f05252; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 14px;">
-                    ⚠️ Invalid username or password. Please try again.
+
+                <div style="
+                    background:#fde8e8;
+                    color:#9b1c1c;
+                    border-left:4px solid #f05252;
+                    padding:12px 16px;
+                    border-radius:8px;
+                    margin-bottom:20px;
+                    font-size:14px;
+                ">
+
+                    Invalid username or password.
+                    Please try again.
+
                 </div>
+
             <%
+
                 } else if ("logged_out".equals(msg)) {
+
             %>
-                <div style="background: #def7ec; color: #03543f; border-left: 4px solid #31c48d; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 14px;">
-                    ✓ You have been logged out successfully.
+
+                <div style="
+                    background:#def7ec;
+                    color:#03543f;
+                    border-left:4px solid #31c48d;
+                    padding:12px 16px;
+                    border-radius:8px;
+                    margin-bottom:20px;
+                    font-size:14px;
+                ">
+
+                    You have been logged out successfully.
+
                 </div>
+
             <%
-                }
+
+                } else if ("true".equals(registered)) {
+
             %>
+
+                <div style="
+                    background:#def7ec;
+                    color:#03543f;
+                    border-left:4px solid #31c48d;
+                    padding:12px 16px;
+                    border-radius:8px;
+                    margin-bottom:20px;
+                    font-size:14px;
+                ">
+
+                    Account created successfully.
+                    Please sign in.
+
+                </div>
+
+            <%
+
+                }
+
+            %>
+
 
             <!-- =================================================
                  LOGIN FORM
-
-                 IMPORTANT:
-                 This submits to LoginServlet.
                  ================================================= -->
 
             <form
@@ -255,8 +339,11 @@
                             Password
                         </label>
 
-                        <a href="${pageContext.request.contextPath}/forgot-password.jsp">
+                        <a
+                            href="${pageContext.request.contextPath}/forgot-password.jsp">
+
                             Forgot password?
+
                         </a>
 
                     </div>
@@ -304,6 +391,19 @@
                     </span>
 
                 </button>
+
+
+                <!-- CREATE ACCOUNT -->
+
+                <div class="register-link">
+
+                    Don't have an account?
+
+                    <a href="${pageContext.request.contextPath}/RegisterServlet">
+                        Create Account
+                    </a>
+
+                </div>
 
 
             </form>
