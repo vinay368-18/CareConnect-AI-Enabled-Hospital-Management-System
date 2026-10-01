@@ -26,7 +26,6 @@
     }
 
     String currentUser = "Administrator";
-
     String role = "ADMIN";
 
     if (currentUserObj != null) {
@@ -171,28 +170,6 @@
             width: 20px;
             text-align: center;
             font-size: 16px;
-        }
-
-        .logout {
-            position: absolute;
-            bottom: 20px;
-            left: 12px;
-            right: 12px;
-        }
-
-        .logout a {
-            display: flex;
-            align-items: center;
-            gap: 13px;
-            padding: 13px 14px;
-            color: #dc2626;
-            text-decoration: none;
-            border-radius: 8px;
-            font-size: 14px;
-        }
-
-        .logout a:hover {
-            background: #fef2f2;
         }
 
         /* MAIN */
@@ -510,13 +487,11 @@
 
             .logo-text,
             .menu-title,
-            .menu a span:not(.menu-icon),
-            .logout a span:not(.menu-icon) {
+            .menu a span:not(.menu-icon) {
                 display: none;
             }
 
-            .menu a,
-            .logout a {
+            .menu a {
                 justify-content: center;
             }
 
@@ -637,6 +612,10 @@
         </nav>
 
 
+        <!-- =================================================
+             ACCOUNT
+             ================================================= -->
+
         <div class="menu-title">
             Account
         </div>
@@ -644,7 +623,7 @@
 
         <nav class="menu">
 
-            <a href="${pageContext.request.contextPath}/logout">
+            <a href="${pageContext.request.contextPath}/LogoutServlet">
 
                 <span class="menu-icon">↪</span>
 
@@ -654,24 +633,11 @@
 
         </nav>
 
-
-        <div class="logout">
-
-            <a href="${pageContext.request.contextPath}/LogoutServlet">
-
-                <span class="menu-icon">⇥</span>
-
-                <span>Sign Out</span>
-
-            </a>
-
-        </div>
-
     </aside>
 
 
     <!-- =====================================================
-         MAIN CONTENT
+         MAIN
          ===================================================== -->
 
     <main class="main">
@@ -745,8 +711,6 @@
             <div class="stats">
 
 
-                <!-- PATIENTS -->
-
                 <div class="stat-card">
 
                     <div class="stat-info">
@@ -767,8 +731,6 @@
 
                 </div>
 
-
-                <!-- DOCTORS -->
 
                 <div class="stat-card">
 
@@ -791,8 +753,6 @@
                 </div>
 
 
-                <!-- APPOINTMENTS -->
-
                 <div class="stat-card">
 
                     <div class="stat-info">
@@ -813,8 +773,6 @@
 
                 </div>
 
-
-                <!-- PENDING BILLS -->
 
                 <div class="stat-card">
 
@@ -1016,8 +974,6 @@
                 <div class="quick-actions">
 
 
-                    <!-- ADD PATIENT -->
-
                     <a
                         href="${pageContext.request.contextPath}/add-patient.jsp"
                         class="action">
@@ -1036,8 +992,6 @@
 
                     </a>
 
-
-                    <!-- ADD DOCTOR -->
 
                     <a
                         href="${pageContext.request.contextPath}/add-doctor.jsp"
@@ -1058,8 +1012,6 @@
                     </a>
 
 
-                    <!-- ADD APPOINTMENT -->
-
                     <a
                         href="${pageContext.request.contextPath}/add-appointment.jsp"
                         class="action">
@@ -1078,8 +1030,6 @@
 
                     </a>
 
-
-                    <!-- ADD BILL -->
 
                     <a
                         href="${pageContext.request.contextPath}/add-bill.jsp"
@@ -1104,9 +1054,7 @@
             </div>
 
 
-            <!-- =================================================
-                 FOOTER
-                 ================================================= -->
+            <!-- FOOTER -->
 
             <div class="footer">
 
