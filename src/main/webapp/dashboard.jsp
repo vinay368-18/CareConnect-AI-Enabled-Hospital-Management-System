@@ -1,18 +1,59 @@
-<%@ page language="java" contentType="text/html; charset=UTF-8"
+<%@ page language="java"
+    contentType="text/html; charset=UTF-8"
     pageEncoding="UTF-8"%>
+
 <%@ page import="java.util.List" %>
-<%@ page import="com.hms.model.Appointment" %>
 <%@ page import="com.hms.dao.ReportDAO" %>
+<%@ page import="com.hms.model.Appointment" %>
+<%@ page import="com.hms.model.User" %>
 
 <%
     ReportDAO reportDAO = new ReportDAO();
+
     int livePatients = reportDAO.getTotalPatients();
     int liveDoctors = reportDAO.getTotalDoctors();
     int liveAppointments = reportDAO.getTotalAppointments();
     int livePendingBills = reportDAO.getPendingBillsCount();
-    List<Appointment> recentAppts = reportDAO.getRecentAppointments();
-    String currentUser = (session != null && session.getAttribute("user") != null) ? (String) session.getAttribute("user") : "Administrator";
-    String initial = (!currentUser.isEmpty()) ? currentUser.substring(0, 1).toUpperCase() : "A";
+
+    List<Appointment> recentAppts =
+            reportDAO.getRecentAppointments();
+
+    User currentUserObj = null;
+
+    if (session != null) {
+        currentUserObj =
+                (User) session.getAttribute("user");
+    }
+
+    String currentUser = "Administrator";
+
+    String role = "ADMIN";
+
+    if (currentUserObj != null) {
+
+        if (currentUserObj.getUsername() != null
+                && !currentUserObj.getUsername().trim().isEmpty()) {
+
+            currentUser =
+                    currentUserObj.getUsername();
+        }
+
+        if (currentUserObj.getRole() != null
+                && !currentUserObj.getRole().trim().isEmpty()) {
+
+            role =
+                    currentUserObj.getRole();
+        }
+    }
+
+    String initial = "A";
+
+    if (currentUser != null
+            && !currentUser.trim().isEmpty()) {
+
+        initial =
+                currentUser.substring(0, 1).toUpperCase();
+    }
 %>
 
 <!DOCTYPE html>
@@ -27,501 +68,943 @@
 
     <title>CareConnect | Dashboard</title>
 
-    <link rel="stylesheet"
-          href="${pageContext.request.contextPath}/css/style.css">
+    <style>
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #f5f7fb;
+            color: #1f2937;
+        }
+
+        .layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* SIDEBAR */
+
+        .sidebar {
+            width: 250px;
+            background: #ffffff;
+            border-right: 1px solid #e5e7eb;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            overflow-y: auto;
+        }
+
+        .logo {
+            height: 80px;
+            display: flex;
+            align-items: center;
+            padding: 0 25px;
+            border-bottom: 1px solid #eef0f4;
+        }
+
+        .logo-icon {
+            width: 38px;
+            height: 38px;
+            background: #2563eb;
+            color: white;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 25px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .logo-text {
+            font-size: 21px;
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        .logo-text span {
+            color: #2563eb;
+        }
+
+        .menu-title {
+            padding: 25px 25px 10px;
+            font-size: 11px;
+            font-weight: bold;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .menu {
+            padding: 0 12px;
+        }
+
+        .menu a {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            padding: 13px 14px;
+            margin-bottom: 4px;
+            border-radius: 8px;
+            color: #4b5563;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .menu a:hover {
+            background: #eff6ff;
+            color: #2563eb;
+        }
+
+        .menu a.active {
+            background: #2563eb;
+            color: white;
+        }
+
+        .menu-icon {
+            width: 20px;
+            text-align: center;
+            font-size: 16px;
+        }
+
+        .logout {
+            position: absolute;
+            bottom: 20px;
+            left: 12px;
+            right: 12px;
+        }
+
+        .logout a {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            padding: 13px 14px;
+            color: #dc2626;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .logout a:hover {
+            background: #fef2f2;
+        }
+
+        /* MAIN */
+
+        .main {
+            margin-left: 250px;
+            width: calc(100% - 250px);
+            min-height: 100vh;
+        }
+
+        /* HEADER */
+
+        .topbar {
+            height: 80px;
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 35px;
+        }
+
+        .page-title h1 {
+            font-size: 24px;
+            color: #111827;
+        }
+
+        .page-title p {
+            color: #6b7280;
+            font-size: 13px;
+            margin-top: 5px;
+        }
+
+        .profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .profile-info {
+            text-align: right;
+        }
+
+        .profile-name {
+            font-size: 14px;
+            font-weight: bold;
+            color: #111827;
+        }
+
+        .profile-role {
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 3px;
+        }
+
+        .avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: #2563eb;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        /* CONTENT */
+
+        .content {
+            padding: 30px 35px;
+        }
+
+        .welcome {
+            background: linear-gradient(
+                135deg,
+                #2563eb,
+                #1d4ed8
+            );
+            color: white;
+            padding: 25px 30px;
+            border-radius: 14px;
+            margin-bottom: 25px;
+        }
+
+        .welcome h2 {
+            font-size: 23px;
+            margin-bottom: 8px;
+        }
+
+        .welcome p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        /* STAT CARDS */
+
+        .stats {
+            display: grid;
+            grid-template-columns:
+                repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 22px;
+            border: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stat-info p {
+            color: #6b7280;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .stat-info h2 {
+            font-size: 28px;
+            color: #111827;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: #eff6ff;
+            color: #2563eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 21px;
+        }
+
+        /* SECTION */
+
+        .section {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 22px;
+            border-bottom: 1px solid #eef0f4;
+        }
+
+        .section-header h3 {
+            font-size: 17px;
+            color: #111827;
+        }
+
+        .view-all {
+            text-decoration: none;
+            color: #2563eb;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        /* TABLE */
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 14px 20px;
+            font-size: 12px;
+            color: #6b7280;
+            background: #f9fafb;
+            text-transform: uppercase;
+        }
+
+        td {
+            padding: 15px 20px;
+            border-top: 1px solid #f0f1f4;
+            font-size: 13px;
+            color: #374151;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .status-scheduled {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .status-completed {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .status-cancelled {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .status-default {
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+
+        /* QUICK ACTIONS */
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns:
+                repeat(4, 1fr);
+            gap: 15px;
+            padding: 22px;
+        }
+
+        .action {
+            text-decoration: none;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 18px;
+            color: #374151;
+            transition: 0.2s;
+        }
+
+        .action:hover {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+
+        .action-icon {
+            width: 40px;
+            height: 40px;
+            background: #eff6ff;
+            color: #2563eb;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            font-size: 18px;
+        }
+
+        .action strong {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .action span {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        /* EMPTY */
+
+        .empty {
+            padding: 35px;
+            text-align: center;
+            color: #9ca3af;
+            font-size: 13px;
+        }
+
+        /* FOOTER */
+
+        .footer {
+            text-align: center;
+            color: #9ca3af;
+            font-size: 12px;
+            padding: 15px;
+        }
+
+        /* RESPONSIVE */
+
+        @media (max-width: 1100px) {
+
+            .stats {
+                grid-template-columns:
+                    repeat(2, 1fr);
+            }
+
+            .quick-actions {
+                grid-template-columns:
+                    repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 750px) {
+
+            .sidebar {
+                width: 70px;
+            }
+
+            .logo {
+                justify-content: center;
+                padding: 0;
+            }
+
+            .logo-text,
+            .menu-title,
+            .menu a span:not(.menu-icon),
+            .logout a span:not(.menu-icon) {
+                display: none;
+            }
+
+            .menu a,
+            .logout a {
+                justify-content: center;
+            }
+
+            .main {
+                margin-left: 70px;
+                width: calc(100% - 70px);
+            }
+
+            .topbar {
+                padding: 0 20px;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+
+            .profile-info {
+                display: none;
+            }
+        }
+
+    </style>
 
 </head>
 
-
 <body>
 
-
-<!-- =========================================================
-     SIDEBAR
-========================================================= -->
-
-<aside class="sidebar">
-
-
-    <!-- LOGO -->
-
-    <div class="logo">
-
-        <span class="logo-icon">+</span>
-
-        <span class="logo-text">
-            CareConnect
-        </span>
-
-    </div>
-
-
-    <p class="menu-label">
-        MAIN MENU
-    </p>
-
-
-    <!-- NAVIGATION -->
-
-    <nav class="menu">
-
-
-        <!-- Dashboard -->
-
-        <a href="${pageContext.request.contextPath}/dashboard.jsp"
-           class="active">
-
-            <span class="menu-icon">⌂</span>
-
-            <span>
-                Dashboard
-            </span>
-
-        </a>
-
-
-        <!-- Patients -->
-
-        <a href="${pageContext.request.contextPath}/PatientServlet?action=list">
-
-            <span class="menu-icon">♙</span>
-
-            <span>
-                Patients
-            </span>
-
-        </a>
-
-
-        <!-- Doctors -->
-
-        <a href="${pageContext.request.contextPath}/DoctorServlet?action=list">
-
-            <span class="menu-icon">⚕</span>
-
-            <span>
-                Doctors
-            </span>
-
-        </a>
-
-
-        <!-- Appointments -->
-
-        <a href="${pageContext.request.contextPath}/AppointmentServlet?action=list">
-
-            <span class="menu-icon">▣</span>
-
-            <span>
-                Appointments
-            </span>
-
-        </a>
-
-
-        <!-- Billing -->
-
-        <a href="${pageContext.request.contextPath}/BillingServlet?action=list">
-
-            <span class="menu-icon">₹</span>
-
-            <span>
-                Billing
-            </span>
-
-        </a>
-
-
-        <!-- Reports -->
-
-        <a href="${pageContext.request.contextPath}/ReportServlet">
-
-            <span class="menu-icon">▤</span>
-
-            <span>
-                Reports
-            </span>
-
-        </a>
-
-
-    </nav>
-
-
-    <!-- LOGOUT -->
-
-    <div class="logout">
-
-        <a href="${pageContext.request.contextPath}/LogoutServlet">
-            Logout
-        </a>
-
-    </div>
-
-
-</aside>
-
-
-
-<!-- =========================================================
-     MAIN CONTENT
-========================================================= -->
-
-<main class="main">
-
+<div class="layout">
 
     <!-- =====================================================
-         TOP BAR
-    ====================================================== -->
+         SIDEBAR
+         ===================================================== -->
 
-    <header class="topbar">
+    <aside class="sidebar">
 
+        <div class="logo">
 
-        <div class="page-title">
+            <div class="logo-icon">
+                +
+            </div>
 
-            <h1>
-                Dashboard
-            </h1>
-
-            <p>
-                Hospital Management System
-            </p>
+            <div class="logo-text">
+                Care<span>Connect</span>
+            </div>
 
         </div>
 
 
-        <div class="top-actions">
+        <div class="menu-title">
+            Main Menu
+        </div>
 
 
-            <!-- Search -->
+        <nav class="menu">
 
-            <label class="search">
+            <a href="${pageContext.request.contextPath}/dashboard.jsp"
+               class="active">
 
-                <input
-                    id="dashboardSearch"
-                    type="search"
-                    placeholder="Search appointments..."
-                    autocomplete="off">
+                <span class="menu-icon">⌂</span>
 
-            </label>
+                <span>Dashboard</span>
 
-
-            <!-- Notifications -->
-
-            <button
-                class="notification"
-                type="button"
-                aria-label="Notifications">
-
-                🔔
-
-            </button>
+            </a>
 
 
-            <!-- Profile -->
+            <a href="${pageContext.request.contextPath}/PatientServlet?action=list">
+
+                <span class="menu-icon">♟</span>
+
+                <span>Patients</span>
+
+            </a>
+
+
+            <a href="${pageContext.request.contextPath}/DoctorServlet?action=list">
+
+                <span class="menu-icon">⚕</span>
+
+                <span>Doctors</span>
+
+            </a>
+
+
+            <a href="${pageContext.request.contextPath}/AppointmentServlet?action=list">
+
+                <span class="menu-icon">▣</span>
+
+                <span>Appointments</span>
+
+            </a>
+
+
+            <a href="${pageContext.request.contextPath}/BillingServlet?action=list">
+
+                <span class="menu-icon">₹</span>
+
+                <span>Billing</span>
+
+            </a>
+
+
+            <a href="${pageContext.request.contextPath}/ReportServlet">
+
+                <span class="menu-icon">▤</span>
+
+                <span>Reports</span>
+
+            </a>
+
+        </nav>
+
+
+        <div class="menu-title">
+            Account
+        </div>
+
+
+        <nav class="menu">
+
+            <a href="${pageContext.request.contextPath}/logout">
+
+                <span class="menu-icon">↪</span>
+
+                <span>Logout</span>
+
+            </a>
+
+        </nav>
+
+
+        <div class="logout">
+
+            <a href="${pageContext.request.contextPath}/LogoutServlet">
+
+                <span class="menu-icon">⇥</span>
+
+                <span>Sign Out</span>
+
+            </a>
+
+        </div>
+
+    </aside>
+
+
+    <!-- =====================================================
+         MAIN CONTENT
+         ===================================================== -->
+
+    <main class="main">
+
+
+        <!-- TOP BAR -->
+
+        <header class="topbar">
+
+            <div class="page-title">
+
+                <h1>
+                    Dashboard
+                </h1>
+
+                <p>
+                    Hospital Management Overview
+                </p>
+
+            </div>
+
 
             <div class="profile">
 
-                <span class="profile-icon">
-                    <%= initial %>
-                </span>
+                <div class="profile-info">
 
-
-                <span class="profile-info">
-
-                    <strong>
+                    <div class="profile-name">
                         <%= currentUser %>
-                    </strong>
+                    </div>
 
-                    <span>
-                        Hospital Admin
-                    </span>
-
-                </span>
-
-            </div>
-
-
-        </div>
-
-
-    </header>
-
-
-
-    <!-- =====================================================
-         CONTENT
-    ====================================================== -->
-
-    <section class="content">
-
-
-        <!-- WELCOME -->
-
-        <div class="welcome">
-
-            <h2>
-                Welcome, <%= currentUser %>
-            </h2>
-
-            <p>
-                Here's a live overview of your hospital system.
-            </p>
-
-        </div>
-
-
-
-        <!-- =================================================
-             STATISTICS
-        ================================================== -->
-
-        <div class="stats">
-
-
-            <!-- TOTAL PATIENTS -->
-
-            <div class="stat-card">
-
-                <div class="stat-top">
-
-                    <span class="stat-label">
-                        Total Patients
-                    </span>
-
-                    <span class="stat-icon">
-                        ♙
-                    </span>
+                    <div class="profile-role">
+                        <%= role %>
+                    </div>
 
                 </div>
 
 
-                <div class="stat-number">
-                    <%= livePatients %>
-                </div>
-
-
-                <div class="trend">
-
-                    <a href="${pageContext.request.contextPath}/PatientServlet?action=list" style="color: inherit; text-decoration: none;">
-                        View all patients →
-                    </a>
-
+                <div class="avatar">
+                    <%= initial %>
                 </div>
 
             </div>
 
+        </header>
 
 
-            <!-- TOTAL DOCTORS -->
+        <!-- CONTENT -->
 
-            <div class="stat-card">
-
-                <div class="stat-top">
-
-                    <span class="stat-label">
-                        Total Doctors
-                    </span>
-
-                    <span class="stat-icon">
-                        ⚕
-                    </span>
-
-                </div>
+        <div class="content">
 
 
-                <div class="stat-number">
-                    <%= liveDoctors %>
-                </div>
+            <!-- WELCOME -->
 
+            <div class="welcome">
 
-                <div class="trend">
+                <h2>
+                    Welcome back, <%= currentUser %>
+                </h2>
 
-                    <a href="${pageContext.request.contextPath}/DoctorServlet?action=list" style="color: inherit; text-decoration: none;">
-                        View all doctors →
-                    </a>
-
-                </div>
+                <p>
+                    Here's what's happening in your hospital today.
+                </p>
 
             </div>
-
-
-
-            <!-- APPOINTMENTS -->
-
-            <div class="stat-card">
-
-                <div class="stat-top">
-
-                    <span class="stat-label">
-                        Total Appointments
-                    </span>
-
-                    <span class="stat-icon">
-                        ▣
-                    </span>
-
-                </div>
-
-
-                <div class="stat-number">
-                    <%= liveAppointments %>
-                </div>
-
-
-                <div class="trend">
-
-                    <a href="${pageContext.request.contextPath}/AppointmentServlet?action=list" style="color: inherit; text-decoration: none;">
-                        View all appointments →
-                    </a>
-
-                </div>
-
-            </div>
-
-
-
-            <!-- PENDING BILLS -->
-
-            <div class="stat-card">
-
-                <div class="stat-top">
-
-                    <span class="stat-label">
-                        Pending Bills
-                    </span>
-
-                    <span class="stat-icon">
-                        ₹
-                    </span>
-
-                </div>
-
-
-                <div class="stat-number">
-                    <%= livePendingBills %>
-                </div>
-
-
-                <div class="trend">
-
-                    <a href="${pageContext.request.contextPath}/BillingServlet?action=list" style="color: inherit; text-decoration: none;">
-                        View billing →
-                    </a>
-
-                </div>
-
-            </div>
-
-
-        </div>
-
-
-
-        <!-- =================================================
-             MAIN GRID
-        ================================================== -->
-
-        <div class="grid">
 
 
             <!-- =================================================
-                 TODAY'S APPOINTMENTS
-            ================================================== -->
+                 STATISTICS
+                 ================================================= -->
 
-            <section class="card">
+            <div class="stats">
 
 
-                <div class="card-header">
+                <!-- PATIENTS -->
+
+                <div class="stat-card">
+
+                    <div class="stat-info">
+
+                        <p>
+                            Total Patients
+                        </p>
+
+                        <h2>
+                            <%= livePatients %>
+                        </h2>
+
+                    </div>
+
+                    <div class="stat-icon">
+                        ♟
+                    </div>
+
+                </div>
+
+
+                <!-- DOCTORS -->
+
+                <div class="stat-card">
+
+                    <div class="stat-info">
+
+                        <p>
+                            Total Doctors
+                        </p>
+
+                        <h2>
+                            <%= liveDoctors %>
+                        </h2>
+
+                    </div>
+
+                    <div class="stat-icon">
+                        ⚕
+                    </div>
+
+                </div>
+
+
+                <!-- APPOINTMENTS -->
+
+                <div class="stat-card">
+
+                    <div class="stat-info">
+
+                        <p>
+                            Appointments
+                        </p>
+
+                        <h2>
+                            <%= liveAppointments %>
+                        </h2>
+
+                    </div>
+
+                    <div class="stat-icon">
+                        ▣
+                    </div>
+
+                </div>
+
+
+                <!-- PENDING BILLS -->
+
+                <div class="stat-card">
+
+                    <div class="stat-info">
+
+                        <p>
+                            Pending Bills
+                        </p>
+
+                        <h2>
+                            <%= livePendingBills %>
+                        </h2>
+
+                    </div>
+
+                    <div class="stat-icon">
+                        ₹
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- =================================================
+                 RECENT APPOINTMENTS
+                 ================================================= -->
+
+            <div class="section">
+
+                <div class="section-header">
 
                     <h3>
                         Recent Appointments
                     </h3>
 
-
                     <a
-                        class="view"
-                        href="${pageContext.request.contextPath}/AppointmentServlet?action=list">
+                        href="${pageContext.request.contextPath}/AppointmentServlet?action=list"
+                        class="view-all">
 
-                        View all →
+                        View All
 
                     </a>
 
                 </div>
 
 
+                <div class="table-container">
 
-                <%
-                    if (recentAppts != null && !recentAppts.isEmpty()) {
-                        for (Appointment appt : recentAppts) {
-                            String pName = appt.getPatientName() != null ? appt.getPatientName() : "Patient #" + appt.getPatientId();
-                            String pInitials = pName.length() >= 2 ? pName.substring(0, 2).toUpperCase() : "PT";
-                            String dName = appt.getDoctorName() != null ? "Dr. " + appt.getDoctorName() : "Doctor #" + appt.getDoctorId();
-                            String apptStatus = appt.getStatus() != null ? appt.getStatus() : "Scheduled";
-                            String badgeClass = "confirmed";
-                            if ("Pending".equalsIgnoreCase(apptStatus)) badgeClass = "pending";
-                            else if ("Cancelled".equalsIgnoreCase(apptStatus)) badgeClass = "pending";
-                %>
-                <div class="appointment">
+                    <table>
 
-                    <div class="patient">
+                        <thead>
 
-                        <span class="avatar">
-                            <%= pInitials %>
-                        </span>
+                            <tr>
 
-                        <div>
+                                <th>
+                                    Patient
+                                </th>
 
-                            <strong>
-                                <%= pName %>
-                            </strong>
+                                <th>
+                                    Doctor
+                                </th>
 
-                            <span>
-                                <%= appt.getReason() != null ? appt.getReason() : "Consultation" %>
-                            </span>
+                                <th>
+                                    Date
+                                </th>
 
-                        </div>
+                                <th>
+                                    Time
+                                </th>
 
-                    </div>
+                                <th>
+                                    Status
+                                </th>
 
-                    <span class="doctor">
-                        <%= dName %>
-                    </span>
+                            </tr>
 
-                    <span class="time">
-                        <%= appt.getAppointmentDate() %> <%= appt.getAppointmentTime() %>
-                    </span>
+                        </thead>
 
-                    <span class="status <%= badgeClass %>">
-                        <%= apptStatus %>
-                    </span>
+
+                        <tbody>
+
+                        <%
+                            if (recentAppts != null
+                                    && !recentAppts.isEmpty()) {
+
+                                for (Appointment appointment :
+                                        recentAppts) {
+
+                                    String appointmentStatus =
+                                            appointment.getStatus();
+
+                                    String statusClass =
+                                            "status-default";
+
+                                    if (appointmentStatus != null) {
+
+                                        if ("Scheduled".equalsIgnoreCase(
+                                                appointmentStatus)) {
+
+                                            statusClass =
+                                                    "status-scheduled";
+
+                                        } else if ("Completed".equalsIgnoreCase(
+                                                appointmentStatus)) {
+
+                                            statusClass =
+                                                    "status-completed";
+
+                                        } else if ("Cancelled".equalsIgnoreCase(
+                                                appointmentStatus)) {
+
+                                            statusClass =
+                                                    "status-cancelled";
+                                        }
+                                    }
+                        %>
+
+                            <tr>
+
+                                <td>
+                                    <%= appointment.getPatientName() %>
+                                </td>
+
+                                <td>
+                                    <%= appointment.getDoctorName() %>
+                                </td>
+
+                                <td>
+                                    <%= appointment.getAppointmentDate() %>
+                                </td>
+
+                                <td>
+                                    <%= appointment.getAppointmentTime() %>
+                                </td>
+
+                                <td>
+
+                                    <span class="status <%= statusClass %>">
+
+                                        <%= appointmentStatus != null
+                                                ? appointmentStatus
+                                                : "Unknown" %>
+
+                                    </span>
+
+                                </td>
+
+                            </tr>
+
+                        <%
+                                }
+
+                            } else {
+                        %>
+
+                            <tr>
+
+                                <td colspan="5">
+
+                                    <div class="empty">
+
+                                        No appointments found.
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+                        <%
+                            }
+                        %>
+
+                        </tbody>
+
+                    </table>
 
                 </div>
-                <%
-                        }
-                    } else {
-                %>
-                <div style="text-align: center; padding: 40px 20px; color: #8492a6;">
-                    <p style="margin: 0 0 10px; font-size: 15px;">No appointments found in database.</p>
-                    <a href="${pageContext.request.contextPath}/add-appointment.jsp" style="color: #0b9589; font-weight: 600; text-decoration: none;">+ Schedule First Appointment</a>
-                </div>
-                <%
-                    }
-                %>
 
-
-            </section>
-
+            </div>
 
 
             <!-- =================================================
                  QUICK ACTIONS
-            ================================================== -->
+                 ================================================= -->
 
-            <section class="card">
+            <div class="section">
 
-
-                <div class="card-header">
+                <div class="section-header">
 
                     <h3>
                         Quick Actions
@@ -530,19 +1013,18 @@
                 </div>
 
 
-
-                <!-- ADD PATIENT -->
-
-                <a
-                    class="action"
-                    href="${pageContext.request.contextPath}/add-patient.jsp">
-
-                    <span class="action-icon">
-                        +
-                    </span>
+                <div class="quick-actions">
 
 
-                    <div>
+                    <!-- ADD PATIENT -->
+
+                    <a
+                        href="${pageContext.request.contextPath}/add-patient.jsp"
+                        class="action">
+
+                        <div class="action-icon">
+                            ♟
+                        </div>
 
                         <strong>
                             Add Patient
@@ -552,24 +1034,18 @@
                             Register a new patient
                         </span>
 
-                    </div>
-
-                </a>
+                    </a>
 
 
+                    <!-- ADD DOCTOR -->
 
-                <!-- ADD DOCTOR -->
+                    <a
+                        href="${pageContext.request.contextPath}/add-doctor.jsp"
+                        class="action">
 
-                <a
-                    class="action"
-                    href="${pageContext.request.contextPath}/add-doctor.jsp">
-
-                    <span class="action-icon">
-                        ⚕
-                    </span>
-
-
-                    <div>
+                        <div class="action-icon">
+                            ⚕
+                        </div>
 
                         <strong>
                             Add Doctor
@@ -579,631 +1055,70 @@
                             Register a new doctor
                         </span>
 
-                    </div>
-
-                </a>
+                    </a>
 
 
+                    <!-- ADD APPOINTMENT -->
 
-                <!-- BOOK APPOINTMENT -->
+                    <a
+                        href="${pageContext.request.contextPath}/add-appointment.jsp"
+                        class="action">
 
-                <a
-                    class="action"
-                    href="${pageContext.request.contextPath}/add-appointment.jsp">
-
-                    <span class="action-icon">
-                        +
-                    </span>
-
-
-                    <div>
+                        <div class="action-icon">
+                            ▣
+                        </div>
 
                         <strong>
-                            Book Appointment
+                            New Appointment
                         </strong>
 
                         <span>
                             Schedule an appointment
                         </span>
 
-                    </div>
-
-                </a>
+                    </a>
 
 
+                    <!-- ADD BILL -->
 
-                <!-- CREATE BILL -->
+                    <a
+                        href="${pageContext.request.contextPath}/add-bill.jsp"
+                        class="action">
 
-                <a
-                    class="action"
-                    href="${pageContext.request.contextPath}/add-bill.jsp">
-
-                    <span class="action-icon">
-                        ₹
-                    </span>
-
-
-                    <div>
+                        <div class="action-icon">
+                            ₹
+                        </div>
 
                         <strong>
-                            Create Invoice
+                            Create Bill
                         </strong>
 
                         <span>
-                            Generate patient billing
+                            Generate a patient bill
                         </span>
-
-                    </div>
-
-                </a>
-
-
-            </section>
-
-
-        </div>
-
-
-
-        <!-- =================================================
-             BOTTOM GRID
-        ================================================== -->
-
-        <div class="bottom-grid">
-
-
-            <!-- =================================================
-                 DEPARTMENT OVERVIEW
-            ================================================== -->
-
-            <section class="card">
-
-
-                <div class="card-header">
-
-                    <h3>
-                        Department Overview
-                    </h3>
-
-
-                    <a
-                        class="view"
-                        href="${pageContext.request.contextPath}/ReportServlet">
-
-                        View all →
 
                     </a>
 
                 </div>
 
-
-
-                <!-- GENERAL MEDICINE -->
-
-                <div class="department">
-
-                    <div class="department-top">
-
-                        <strong>
-                            General Medicine
-                        </strong>
-
-                        <span>
-                            82 patients
-                        </span>
-
-                    </div>
-
-
-                    <div class="progress">
-
-                        <div
-                            class="progress-bar"
-                            style="width: 82%;">
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-
-                <!-- CARDIOLOGY -->
-
-                <div class="department">
-
-                    <div class="department-top">
-
-                        <strong>
-                            Cardiology
-                        </strong>
-
-                        <span>
-                            64 patients
-                        </span>
-
-                    </div>
-
-
-                    <div class="progress">
-
-                        <div
-                            class="progress-bar"
-                            style="width: 64%;">
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-
-                <!-- ORTHOPEDICS -->
-
-                <div class="department">
-
-                    <div class="department-top">
-
-                        <strong>
-                            Orthopedics
-                        </strong>
-
-                        <span>
-                            51 patients
-                        </span>
-
-                    </div>
-
-
-                    <div class="progress">
-
-                        <div
-                            class="progress-bar"
-                            style="width: 51%;">
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-
-                <!-- PEDIATRICS -->
-
-                <div class="department">
-
-                    <div class="department-top">
-
-                        <strong>
-                            Pediatrics
-                        </strong>
-
-                        <span>
-                            36 patients
-                        </span>
-
-                    </div>
-
-
-                    <div class="progress">
-
-                        <div
-                            class="progress-bar"
-                            style="width: 36%;">
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-            </section>
-
+            </div>
 
 
             <!-- =================================================
-                 RECENT ACTIVITY
-            ================================================== -->
+                 FOOTER
+                 ================================================= -->
 
-            <section class="card">
+            <div class="footer">
 
+                © 2026 CareConnect Hospital Management System
 
-                <div class="card-header">
-
-                    <h3>
-                        Recent Activity
-                    </h3>
-
-                </div>
-
-
-
-                <!-- ACTIVITY 1 -->
-
-                <div class="activity">
-
-                    <span class="activity-icon">
-                        +
-                    </span>
-
-
-                    <div>
-
-                        <p>
-
-                            <strong>
-                                New patient
-                            </strong>
-
-                            Arun Kumar registered
-
-                        </p>
-
-                        <span>
-                            10 minutes ago
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-
-                <!-- ACTIVITY 2 -->
-
-                <div class="activity">
-
-                    <span class="activity-icon">
-                        ▣
-                    </span>
-
-
-                    <div>
-
-                        <p>
-
-                            <strong>
-                                Appointment
-                            </strong>
-
-                            Rahul Sharma checked in
-
-                        </p>
-
-                        <span>
-                            35 minutes ago
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-
-                <!-- ACTIVITY 3 -->
-
-                <div class="activity">
-
-                    <span class="activity-icon">
-                        ₹
-                    </span>
-
-
-                    <div>
-
-                        <p>
-
-                            <strong>
-                                Payment
-                            </strong>
-
-                            Invoice #1024 paid
-
-                        </p>
-
-                        <span>
-                            1 hour ago
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-
-                <!-- ACTIVITY 4 -->
-
-                <div class="activity">
-
-                    <span class="activity-icon">
-                        ⚕
-                    </span>
-
-
-                    <div>
-
-                        <p>
-
-                            <strong>
-                                Doctor
-                            </strong>
-
-                            Dr. Anjali updated profile
-
-                        </p>
-
-                        <span>
-                            2 hours ago
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-            </section>
-
+            </div>
 
         </div>
 
+    </main>
 
-    </section>
-
-
-</main>
-
-
-
-<!-- =========================================================
-     JAVASCRIPT
-========================================================= -->
-
-<script>
-
-document.addEventListener("DOMContentLoaded", function () {
-
-
-    /* =====================================================
-       SEARCH APPOINTMENTS
-    ===================================================== */
-
-    const searchInput =
-        document.getElementById("dashboardSearch");
-
-
-    if (searchInput) {
-
-        searchInput.addEventListener(
-            "input",
-            function () {
-
-                const query =
-                    this.value
-                        .toLowerCase()
-                        .trim();
-
-
-                document
-                    .querySelectorAll(".appointment")
-                    .forEach(function (row) {
-
-                        const matches =
-                            row.textContent
-                               .toLowerCase()
-                               .includes(query);
-
-                        row.hidden = !matches;
-
-                    });
-
-            }
-        );
-
-    }
-
-
-
-    /* =====================================================
-       PRESS "/" TO FOCUS SEARCH
-    ===================================================== */
-
-    document.addEventListener(
-        "keydown",
-        function (event) {
-
-            if (
-                event.key === "/"
-                &&
-                document.activeElement !== searchInput
-            ) {
-
-                event.preventDefault();
-
-                if (searchInput) {
-                    searchInput.focus();
-                }
-
-            }
-
-        }
-    );
-
-
-
-    /* =====================================================
-       ANIMATE STATISTIC NUMBERS
-    ===================================================== */
-
-    document
-        .querySelectorAll(".stat-number")
-        .forEach(function (counter) {
-
-
-            const target =
-                Number(
-                    counter.textContent.trim()
-                );
-
-
-            if (Number.isNaN(target)) {
-                return;
-            }
-
-
-            const duration = 1000;
-
-            const startTime =
-                performance.now();
-
-
-            function updateCounter(currentTime) {
-
-                const progress =
-                    Math.min(
-                        (currentTime - startTime)
-                        / duration,
-                        1
-                    );
-
-
-                const smoothProgress =
-                    1 -
-                    Math.pow(
-                        1 - progress,
-                        3
-                    );
-
-
-                counter.textContent =
-                    Math.floor(
-                        target *
-                        smoothProgress
-                    );
-
-
-                if (progress < 1) {
-
-                    requestAnimationFrame(
-                        updateCounter
-                    );
-
-                } else {
-
-                    counter.textContent =
-                        target;
-
-                }
-
-            }
-
-
-            requestAnimationFrame(
-                updateCounter
-            );
-
-        });
-
-
-
-    /* =====================================================
-       NOTIFICATION
-    ===================================================== */
-
-    const notification =
-        document.querySelector(".notification");
-
-
-    if (notification) {
-
-        notification.addEventListener(
-            "click",
-            function () {
-
-
-                alert(
-                    "You have 3 new hospital notifications."
-                );
-
-
-                this.animate(
-                    [
-                        {
-                            transform: "rotate(0deg)"
-                        },
-
-                        {
-                            transform: "rotate(-15deg)"
-                        },
-
-                        {
-                            transform: "rotate(15deg)"
-                        },
-
-                        {
-                            transform: "rotate(0deg)"
-                        }
-                    ],
-                    {
-                        duration: 450,
-                        easing: "ease-in-out"
-                    }
-                );
-
-            }
-        );
-
-    }
-
-
-
-    /* =====================================================
-       LIVE GREETING
-    ===================================================== */
-
-    const greeting =
-        document.querySelector(
-            ".welcome h2"
-        );
-
-
-    if (greeting) {
-
-        const hour =
-            new Date().getHours();
-
-
-        let message =
-            "Good evening";
-
-
-        if (hour < 12) {
-
-            message =
-                "Good morning";
-
-        } else if (hour < 18) {
-
-            message =
-                "Good afternoon";
-
-        }
-
-
-        greeting.textContent =
-            message +
-            ", Administrator";
-
-    }
-
-
-});
-
-</script>
-
+</div>
 
 </body>
 
