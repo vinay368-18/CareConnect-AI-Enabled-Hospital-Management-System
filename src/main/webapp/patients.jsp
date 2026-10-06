@@ -275,6 +275,11 @@
                 ← Dashboard
             </a>
 
+            <a href="${pageContext.request.contextPath}/CVDServlet?action=list"
+               style="display: inline-flex; align-items: center; gap: 6px; padding: 12px 18px; background: #0f766e; color: white; text-decoration: none; border-radius: 9px; font-weight: 600; font-size: 14px;">
+                ❤️ CVD Diagnostics
+            </a>
+
             <a href="${pageContext.request.contextPath}/add-patient.jsp"
                class="add-btn">
                 + Add Patient
@@ -391,6 +396,11 @@
                     <td>
 
                         <div class="actions">
+
+                            <a href="${pageContext.request.contextPath}/CVDServlet?action=new&patientId=<%= patient.getId() %>"
+                               style="display: inline-block; background: #e6fffa; color: #0f766e; padding: 7px 11px; border-radius: 7px; text-decoration: none; font-size: 12px; font-weight: 600;">
+                                ❤️ Screen CVD
+                            </a>
 
                             <a href="${pageContext.request.contextPath}/PatientServlet?action=edit&id=<%= patient.getId() %>"
                                class="edit-btn">
