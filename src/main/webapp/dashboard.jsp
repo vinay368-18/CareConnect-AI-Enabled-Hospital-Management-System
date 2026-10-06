@@ -4,19 +4,25 @@
 
 <%@ page import="java.util.List" %>
 <%@ page import="com.hms.dao.ReportDAO" %>
+<%@ page import="com.hms.dao.CVDScreeningDAO" %>
 <%@ page import="com.hms.model.Appointment" %>
+<%@ page import="com.hms.model.CVDScreening" %>
 <%@ page import="com.hms.model.User" %>
 
 <%
     ReportDAO reportDAO = new ReportDAO();
+    CVDScreeningDAO cvdDAO = new CVDScreeningDAO();
 
     int livePatients = reportDAO.getTotalPatients();
     int liveDoctors = reportDAO.getTotalDoctors();
     int liveAppointments = reportDAO.getTotalAppointments();
     int livePendingBills = reportDAO.getPendingBillsCount();
+    int liveCvdScreenings = cvdDAO.getTotalScreeningsCount();
 
     List<Appointment> recentAppts =
             reportDAO.getRecentAppointments();
+    List<CVDScreening> recentCvdScreenings =
+            cvdDAO.getRecentScreenings(4);
 
     User currentUserObj = null;
 
@@ -269,8 +275,7 @@
 
         .stats {
             display: grid;
-            grid-template-columns:
-                repeat(4, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
@@ -609,6 +614,15 @@
 
             </a>
 
+
+            <a href="${pageContext.request.contextPath}/CVDServlet?action=list" style="color: #0f766e; font-weight: bold;">
+
+                <span class="menu-icon">❤️</span>
+
+                <span>CVD Diagnostics</span>
+
+            </a>
+
         </nav>
 
 
@@ -794,6 +808,27 @@
 
                 </div>
 
+
+                <div class="stat-card" style="border-left: 4px solid #0f766e;">
+
+                    <div class="stat-info">
+
+                        <p>
+                            CVD AI Screenings
+                        </p>
+
+                        <h2 style="color: #0f766e;">
+                            <%= liveCvdScreenings %>
+                        </h2>
+
+                    </div>
+
+                    <div class="stat-icon" style="background: #f0fdfa; color: #0f766e;">
+                        ❤️
+                    </div>
+
+                </div>
+
             </div>
 
 
@@ -957,6 +992,163 @@
 
 
             <!-- =================================================
+                 RECENT CVD SCREENINGS
+                 ================================================= -->
+
+            <div class="section">
+
+                <div class="section-header">
+
+                    <h3>
+                        ❤️ Recent AI Retinal & CVD Screenings
+                    </h3>
+
+                    <a
+                        href="${pageContext.request.contextPath}/CVDServlet?action=list"
+                        class="view-all">
+
+                        View All Screenings
+
+                    </a>
+
+                </div>
+
+
+                <div class="table-container">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+                                    ID
+                                </th>
+
+                                <th>
+                                    Patient
+                                </th>
+
+                                <th>
+                                    Doctor
+                                </th>
+
+                                <th>
+                                    CVD Risk
+                                </th>
+
+                                <th>
+                                    Hypertension
+                                </th>
+
+                                <th>
+                                    Diabetic Retinopathy
+                                </th>
+
+                                <th>
+                                    Overall Risk
+                                </th>
+
+                                <th>
+                                    Action
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody>
+
+                        <%
+                            if (recentCvdScreenings != null
+                                    && !recentCvdScreenings.isEmpty()) {
+
+                                for (CVDScreening cvdItem : recentCvdScreenings) {
+                                    String cvdRiskClass = "completed";
+                                    if ("High Risk".equalsIgnoreCase(cvdItem.getRiskLevel())) {
+                                        cvdRiskClass = "cancelled";
+                                    } else if ("Moderate Risk".equalsIgnoreCase(cvdItem.getRiskLevel())) {
+                                        cvdRiskClass = "scheduled";
+                                    }
+                        %>
+
+                            <tr>
+
+                                <td>
+                                    <strong>#<%= cvdItem.getScreeningId() %></strong>
+                                </td>
+
+                                <td>
+                                    <strong><%= cvdItem.getPatientName() %></strong>
+                                </td>
+
+                                <td>
+                                    <%= cvdItem.getDoctorName() != null ? cvdItem.getDoctorName() : "General" %>
+                                </td>
+
+                                <td>
+                                    <%= cvdItem.getCvdPrediction() %> (<%= cvdItem.getCvdPercent() %>%)
+                                </td>
+
+                                <td>
+                                    <%= cvdItem.getHypertensionPrediction() %> (<%= cvdItem.getHypertensionPercent() %>%)
+                                </td>
+
+                                <td>
+                                    <%= cvdItem.getDrGrade() %>
+                                </td>
+
+                                <td>
+                                    <span class="status <%= cvdRiskClass %>">
+                                        <%= cvdItem.getRiskLevel() %>
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <a href="${pageContext.request.contextPath}/CVDServlet?action=view&id=<%= cvdItem.getScreeningId() %>"
+                                       style="color: #0f766e; font-weight: bold; text-decoration: none;">
+                                        View Report
+                                    </a>
+                                </td>
+
+                            </tr>
+
+                        <%
+                                }
+
+                            } else {
+                        %>
+
+                            <tr>
+
+                                <td colspan="8">
+
+                                    <div class="empty">
+
+                                        No AI screenings recorded yet. Click "Run CVD Screening" below to start.
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+                        <%
+                            }
+                        %>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+
+            <!-- =================================================
                  QUICK ACTIONS
                  ================================================= -->
 
@@ -1045,6 +1237,25 @@
 
                         <span>
                             Generate a patient bill
+                        </span>
+
+                    </a>
+
+
+                    <a
+                        href="${pageContext.request.contextPath}/CVDServlet?action=new"
+                        class="action" style="border: 1px solid #99f6e4;">
+
+                        <div class="action-icon" style="background: #f0fdfa; color: #0f766e;">
+                            ❤️
+                        </div>
+
+                        <strong style="color: #0f766e;">
+                            Run CVD AI Screening
+                        </strong>
+
+                        <span>
+                            Retinal deep learning analysis
                         </span>
 
                     </a>
