@@ -63,7 +63,7 @@
             color: #43546b;
         }
 
-        input {
+        input, select {
             width: 100%;
             box-sizing: border-box;
             padding: 13px 14px;
@@ -71,9 +71,10 @@
             border-radius: 8px;
             font-size: 15px;
             outline: none;
+            background: white;
         }
 
-        input:focus {
+        input:focus, select:focus {
             border-color: #0b8f83;
         }
 
@@ -217,14 +218,24 @@
                 <div class="form-group">
 
                     <label for="specialization">
-                        Specialization
+                        Specialization (CVD / Retinal Care)
                     </label>
 
-                    <input type="text"
-                           id="specialization"
+                    <select id="specialization"
                            name="specialization"
-                           placeholder="e.g. Cardiologist"
                            required>
+                        <option value="">-- Select Specialization --</option>
+                        <option value="Preventive Cardiologist" selected>Preventive Cardiologist</option>
+                        <option value="Vitreo-Retinal Specialist (Ophthalmologist)">Vitreo-Retinal Specialist (Ophthalmologist)</option>
+                        <option value="Interventional Cardiologist">Interventional Cardiologist</option>
+                        <option value="General Cardiologist">General Cardiologist</option>
+                        <option value="Endocrinologist &amp; Diabetologist">Endocrinologist &amp; Diabetologist</option>
+                        <option value="Vascular Medicine &amp; Hypertension Specialist">Vascular Medicine &amp; Hypertension Specialist</option>
+                        <option value="Cardiac Electrophysiologist">Cardiac Electrophysiologist</option>
+                        <option value="Cardiothoracic Surgeon">Cardiothoracic Surgeon</option>
+                        <option value="Heart Failure &amp; Transplant Cardiologist">Heart Failure &amp; Transplant Cardiologist</option>
+                        <option value="Internal Medicine / Physician">Internal Medicine / Physician</option>
+                    </select>
 
                 </div>
 

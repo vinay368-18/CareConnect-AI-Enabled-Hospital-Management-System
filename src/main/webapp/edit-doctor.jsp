@@ -85,7 +85,7 @@
             color: #43546b;
         }
 
-        input {
+        input, select {
             width: 100%;
             box-sizing: border-box;
             padding: 13px 14px;
@@ -93,9 +93,10 @@
             border-radius: 8px;
             font-size: 15px;
             outline: none;
+            background: white;
         }
 
-        input:focus {
+        input:focus, select:focus {
             border-color: #0b8f83;
         }
 
@@ -251,14 +252,41 @@
                 <div class="form-group">
 
                     <label for="specialization">
-                        Specialization
+                        Specialization (CVD / Retinal Care)
                     </label>
 
-                    <input type="text"
-                           id="specialization"
-                           name="specialization"
-                           value="<%= doctor.getSpecialization() %>"
-                           required>
+                    <%
+                        String curSpec = doctor.getSpecialization() != null ? doctor.getSpecialization() : "";
+                        String[] specs = {
+                            "Preventive Cardiologist",
+                            "Vitreo-Retinal Specialist (Ophthalmologist)",
+                            "Interventional Cardiologist",
+                            "General Cardiologist",
+                            "Endocrinologist & Diabetologist",
+                            "Vascular Medicine & Hypertension Specialist",
+                            "Cardiac Electrophysiologist",
+                            "Cardiothoracic Surgeon",
+                            "Heart Failure & Transplant Cardiologist",
+                            "Internal Medicine / Physician"
+                        };
+                    %>
+
+                    <select id="specialization"
+                            name="specialization"
+                            required>
+                        <%
+                            boolean matched = false;
+                            for (String sp : specs) {
+                                boolean sel = sp.equalsIgnoreCase(curSpec);
+                                if (sel) matched = true;
+                        %>
+                            <option value="<%= sp %>" <%= sel ? "selected" : "" %>><%= sp %></option>
+                        <%  }
+                            if (!matched && !curSpec.isEmpty()) {
+                        %>
+                            <option value="<%= curSpec %>" selected><%= curSpec %></option>
+                        <%  } %>
+                    </select>
 
                 </div>
 

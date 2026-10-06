@@ -195,6 +195,11 @@
                 ← Dashboard
             </a>
 
+            <a href="${pageContext.request.contextPath}/CVDServlet?action=list"
+               style="display: inline-flex; align-items: center; background: #0f766e; color: white; text-decoration: none; padding: 14px 20px; border-radius: 10px; font-weight: bold;">
+                ❤️ CVD Diagnostics
+            </a>
+
             <a href="${pageContext.request.contextPath}/add-doctor.jsp"
                class="add-btn">
 
