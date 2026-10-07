@@ -1,0 +1,44 @@
+{
+  "model_name": "MultiTaskEfficientNetB0 - Retinal Microvascular Risk Assessment",
+  "version": "1.0.0",
+  "date": "2026-10-02",
+  "framework": "PyTorch (torchvision)",
+  "backbone": "EfficientNet-B0 (pretrained=False at inference load time to ensure offline independence)",
+  "input_modality": "Single RGB retinal fundus photograph (normalized to 224x224)",
+  "task_heads": [
+    {
+      "head": "cvd",
+      "target": "Cardiovascular Disease (vascular disease or myocardial infarction history)",
+      "type": "Binary classification (sigmoid output)",
+      "threshold": 0.3238
+    },
+    {
+      "head": "hypertension",
+      "target": "Systemic Hypertension history",
+      "type": "Binary classification (sigmoid output)",
+      "threshold": 0.5165
+    },
+    {
+      "head": "dr",
+      "target": "Diabetic Retinopathy ICDR Grade (0: No DR, 1: Mild, 2: Moderate, 3: Severe, 4: Proliferative)",
+      "type": "Multi-class classification (5-class softmax output)",
+      "threshold": "Argmax with confidence threshold (>= 0.50 and margin >= 0.15)"
+    }
+  ],
+  "dataset": {
+    "name": "mBRSET (Mobile Brazilian Retinal Dataset)",
+    "cohort_size": "1,289 patients with verified retinal images on disk (1,268 eligible for CVD analysis)",
+    "cohort_composition": "Diabetic patients attending clinical centers in Brazil",
+    "camera_type": "Phelcom Eyer (handheld smartphone-based non-mydriatic retinal camera)"
+  },
+  "known_limitations_and_clinical_caveats": [
+    "Single-source cohort: trained exclusively on mBRSET with no external hospital validation.",
+    "Cohort homogeneity: essentially all patients have diagnosed diabetes mellitus; the system cannot classify or predict diabetes status.",
+    "Retinal finding vs diagnosis: Diabetic Retinopathy grade is a microvascular retinal finding, not a systemic diagnosis of diabetes.",
+    "No numeric blood pressure: the dataset provides binary hypertension history, not continuous systolic/diastolic values.",
+    "Historical target: CVD labels reflect self/clinician-reported history of vascular disease or myocardial infarction, not prospective 5- or 10-year incident risk.",
+    "Low CVD discriminative performance: image-only CVD prediction is near chance level (~0.56 ROC-AUC in held-out test split).",
+    "Domain specificity: images were acquired with handheld Phelcom Eyer cameras; generalizability to desktop fundus cameras (e.g., Topcon, Canon, Zeiss) is unverified and likely subject to domain shift."
+  ],
+  "intended_use": "Investigational academic research prototype for biomedical microvascular hypothesis generation. Strictly not for clinical diagnosis, patient triage, or medical decision-making."
+}

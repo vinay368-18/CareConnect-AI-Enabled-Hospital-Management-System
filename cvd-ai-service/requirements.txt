@@ -1,0 +1,9 @@
+# CVD_Retinal_App pinned requirements
+# Compatible with Python 3.10 - 3.12 (CPU and GPU)
+torch==2.14.1
+torchvision==0.29.1
+numpy==2.5.3
+pillow==12.3.0
+matplotlib==3.11.2
+gradio==6.29.0
+pandas==3.0.6

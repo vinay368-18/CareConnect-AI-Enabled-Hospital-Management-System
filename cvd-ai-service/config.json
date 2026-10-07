@@ -1,0 +1,44 @@
+{
+  "project_name": "CVD Retinal Research Prototype",
+  "version": "1.0.0",
+  "model": {
+    "architecture": "efficientnet_b0",
+    "weights_file": "models/best_model.pt",
+    "image_size": 224,
+    "mean": [0.485, 0.456, 0.406],
+    "std": [0.229, 0.224, 0.225],
+    "heads": ["cvd", "hypertension", "dr"],
+    "dr_classes": [
+      "No DR",
+      "Mild",
+      "Moderate",
+      "Severe",
+      "Proliferative"
+    ]
+  },
+  "thresholds": {
+    "hypertension": {
+      "value": 0.5165,
+      "source": "Youden's J statistic optimized on mBRSET validation split (n=190 patients)",
+      "label": "Systemic Hypertension"
+    },
+    "cvd": {
+      "value": 0.3238,
+      "source": "Youden's J statistic optimized on mBRSET validation split (n=190 patients)",
+      "label": "Cardiovascular Disease"
+    },
+    "dr_confidence": {
+      "min_top_probability": 0.50,
+      "min_margin": 0.15,
+      "badge_text": "Low confidence (top grade probability < 50% or margin < 15%)"
+    }
+  },
+  "reliability_badges": {
+    "cvd": "Low reliability: image-only discriminative performance is near chance (~0.56 AUC in held-out test cohort).",
+    "dr_low_confidence": "Low confidence: grade probabilities are distributed across multiple classes."
+  },
+  "disclaimers": {
+    "prediction_note": "Predictions are model-generated estimates from a research prototype and are not a medical diagnosis.",
+    "diabetes_note": "Diabetes status is not predicted by this system. DR grade is a retinal finding, not a diabetes diagnosis."
+  }
+}

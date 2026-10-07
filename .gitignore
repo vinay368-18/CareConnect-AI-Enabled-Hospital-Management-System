@@ -1,1 +1,11 @@
 /build/
+
+# CVD AI model
+cvd-ai-service/models/*.pt
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Uploaded files
+src/main/webapp/uploads/
