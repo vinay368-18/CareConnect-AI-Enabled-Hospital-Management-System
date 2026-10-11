@@ -150,6 +150,37 @@ public class CVDServlet extends HttpServlet {
         }
     }
 
+    /**
+     * Residual U-Net vessel segmentation. Optional: any failure is logged and the screening is kept as it is.
+     */
+    private void runVesselSegmentation(int screeningId, byte[] imageBytes, String savedFilename) {
+        try {
+            String name = savedFilename != null ? savedFilename : "scan.jpg";
+            CVDClient.VesselResult vessels = cvdClient.segmentVessels(imageBytes, name);
+
+            String baseName = Paths.get(name).getFileName().toString();
+            int dot = baseName.lastIndexOf('.');
+            if (dot > 0) {
+                baseName = baseName.substring(0, dot);
+            }
+            String overlayName = "vessel_" + baseName + ".png";
+
+            String uploadPath = getServletContext().getRealPath("/uploads/fundus");
+            if (uploadPath == null) {
+                uploadPath = new File("src/main/webapp/uploads/fundus").getAbsolutePath();
+            }
+            File uploadDir = new File(uploadPath);
+            if (!uploadDir.exists()) {
+                uploadDir.mkdirs();
+            }
+            Files.write(new File(uploadDir, overlayName).toPath(), vessels.getOverlayPng());
+
+            cvdDAO.updateVesselResult(screeningId, "uploads/fundus/" + overlayName, vessels.getDensityPercent());
+        } catch (Exception e) {
+            System.err.println("[CVD] Vessel segmentation skipped: " + e.getMessage());
+        }
+    }
+
     private void analyzeFundusScan(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
@@ -239,6 +270,7 @@ public class CVDServlet extends HttpServlet {
             int savedId = cvdDAO.saveScreening(screeningResult);
 
             if (savedId > 0) {
+                runVesselSegmentation(savedId, imageBytes, savedFilename);
                 response.sendRedirect(request.getContextPath() + "/CVDServlet?action=view&id=" + savedId + "&msg=analyzed");
             } else {
                 response.sendRedirect(request.getContextPath() + "/CVDServlet?action=list&error=save_failed");
