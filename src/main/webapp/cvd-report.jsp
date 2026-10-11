@@ -370,12 +370,26 @@
         <!-- Diagnostic Grid -->
         <div class="diagnostic-section">
 
-            <!-- Fundus Photograph -->
-            <div class="scan-preview-box">
-                <img src="${pageContext.request.contextPath}/<%= s.getImagePath() != null ? s.getImagePath() : "uploads/fundus/samples/img00330.jpg" %>"
-                     alt="Retinal Fundus Scan"
-                     onerror="this.src='${pageContext.request.contextPath}/uploads/fundus/samples/img00330.jpg';">
-                <div class="caption">Retinal Fundus Photography (Input Tensor: 224x224)</div>
+            <!-- Fundus Photograph (+ Residual U-Net vessel segmentation) -->
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                <div class="scan-preview-box">
+                    <img src="${pageContext.request.contextPath}/<%= s.getImagePath() != null ? s.getImagePath() : "uploads/fundus/samples/img00330.jpg" %>"
+                         alt="Retinal Fundus Scan"
+                         onerror="this.src='${pageContext.request.contextPath}/uploads/fundus/samples/img00330.jpg';">
+                    <div class="caption">Retinal Fundus Photography (Input Tensor: 224x224)</div>
+                </div>
+
+                <% if (s.getVesselOverlayPath() != null && !s.getVesselOverlayPath().isEmpty()) { %>
+                <div class="scan-preview-box">
+                    <img src="${pageContext.request.contextPath}/<%= s.getVesselOverlayPath() %>"
+                         alt="Segmented retinal vessels"
+                         onerror="this.parentNode.style.display='none';">
+                    <div class="caption">
+                        Vessel segmentation (Residual U-Net)<%= s.getVesselDensity() != null ? " &middot; vessel density " + String.format("%.1f", s.getVesselDensity()) + "% of retinal area" : "" %><br>
+                        Research output &ndash; not clinically validated
+                    </div>
+                </div>
+                <% } %>
             </div>
 
             <!-- Deep Learning Prediction Scores -->

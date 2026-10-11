@@ -75,6 +75,57 @@ public class CVDClient {
         return parsePredictionResponse(response.body());
     }
 
+    /** Result of the Residual U-Net vessel segmentation: PNG overlay + vessel density (% of retinal area). */
+    public static class VesselResult {
+        private final byte[] overlayPng;
+        private final double densityPercent;
+
+        public VesselResult(byte[] overlayPng, double densityPercent) {
+            this.overlayPng = overlayPng;
+            this.densityPercent = densityPercent;
+        }
+
+        public byte[] getOverlayPng() {
+            return overlayPng;
+        }
+
+        public double getDensityPercent() {
+            return densityPercent;
+        }
+    }
+
+    /**
+     * Sends the fundus image to the Residual U-Net endpoint and returns the vessel overlay.
+     */
+    public VesselResult segmentVessels(byte[] imageBytes, String filename) throws IOException, InterruptedException {
+        String boundary = "----WebKitFormBoundary" + UUID.randomUUID().toString().replace("-", "");
+        byte[] multipartBody = createMultipartBody(boundary, imageBytes, filename);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/segment"))
+                .timeout(Duration.ofSeconds(120))
+                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                .POST(HttpRequest.BodyPublishers.ofByteArray(multipartBody))
+                .build();
+
+        HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
+
+        if (response.statusCode() != 200) {
+            throw new IOException("Vessel segmentation returned HTTP " + response.statusCode());
+        }
+
+        double density = 0.0;
+        String header = response.headers().firstValue("X-Vessel-Density").orElse(null);
+        if (header != null) {
+            try {
+                density = Double.parseDouble(header.trim());
+            } catch (NumberFormatException e) {
+                density = 0.0;
+            }
+        }
+        return new VesselResult(response.body(), density);
+    }
+
     private byte[] createMultipartBody(String boundary, byte[] fileBytes, String filename) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 

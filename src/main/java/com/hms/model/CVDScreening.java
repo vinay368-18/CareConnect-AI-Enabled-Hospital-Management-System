@@ -22,6 +22,10 @@ public class CVDScreening {
     private Integer appointmentId;
     private String imagePath;
 
+    // Residual U-Net vessel segmentation (optional; null when not available)
+    private String vesselOverlayPath;
+    private Double vesselDensity;           // % of the retinal area classified as vessel
+
     // AI Prediction Results
     private String cvdPrediction;              // "Positive" or "Negative"
     private double cvdProbability;             // 0.0 to 1.0
@@ -203,6 +207,22 @@ public class CVDScreening {
 
     public void setScreeningDate(Timestamp screeningDate) {
         this.screeningDate = screeningDate;
+    }
+
+    public String getVesselOverlayPath() {
+        return vesselOverlayPath;
+    }
+
+    public void setVesselOverlayPath(String vesselOverlayPath) {
+        this.vesselOverlayPath = vesselOverlayPath;
+    }
+
+    public Double getVesselDensity() {
+        return vesselDensity;
+    }
+
+    public void setVesselDensity(Double vesselDensity) {
+        this.vesselDensity = vesselDensity;
     }
 
     // Helper formatting methods for UI presentation

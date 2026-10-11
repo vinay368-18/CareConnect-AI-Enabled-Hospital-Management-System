@@ -9,12 +9,13 @@ import os
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from PIL import Image
 
 from inference import RetinalPredictor
+from vessel_segmentation import VesselSegmenter
 
 app = FastAPI(
     title="CareConnect CVD & Retinal AI Microservice",
@@ -32,13 +33,20 @@ app.add_middleware(
 
 # Global Predictor instance
 PREDICTOR: Optional[RetinalPredictor] = None
+VESSEL: Optional[VesselSegmenter] = None
 
 @app.on_event("startup")
 def startup_event():
-    global PREDICTOR
+    global PREDICTOR, VESSEL
     print("[CVD API] Initializing RetinalPredictor PyTorch model...")
     PREDICTOR = RetinalPredictor()
     print("[CVD API] PyTorch model loaded successfully on CPU.")
+    try:
+        VESSEL = VesselSegmenter()
+        print("[CVD API] Residual U-Net vessel segmentation model loaded.")
+    except Exception as e:  # the rest of the API keeps working without it
+        VESSEL = None
+        print(f"[CVD API] Vessel segmentation disabled: {e}")
 
 @app.get("/")
 def root():
@@ -53,7 +61,8 @@ def root():
 def health():
     return {
         "status": "healthy",
-        "model_loaded": PREDICTOR is not None
+        "model_loaded": PREDICTOR is not None,
+        "vessel_model_loaded": VESSEL is not None
     }
 
 def compute_overall_assessment(results: Dict[str, Any]) -> Dict[str, str]:
@@ -146,6 +155,27 @@ def predict_base64(payload: Base64Payload):
         "recommendation": assessment["recommendation"],
         "reliability_badge": results.get("cvd_reliability_badge", "")
     }
+
+@app.post("/segment")
+def segment_vessels(file: UploadFile = File(...)):
+    """Residual U-Net vessel segmentation. Returns a PNG overlay; vessel density is in the X-Vessel-Density header."""
+    if VESSEL is None:
+        raise HTTPException(status_code=503, detail="Vessel segmentation model not loaded")
+    try:
+        image = Image.open(io.BytesIO(file.file.read())).convert("RGB")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid image file: {str(e)}")
+
+    result = VESSEL.segment(image)
+    return Response(
+        content=result["overlay_png"],
+        media_type="image/png",
+        headers={
+            "X-Vessel-Density": f"{result['vessel_density']:.2f}",
+            "X-Vessel-Image-Size": f"{result['size'][0]}x{result['size'][1]}",
+            "Access-Control-Expose-Headers": "X-Vessel-Density, X-Vessel-Image-Size",
+        },
+    )
 
 @app.get("/sample-images")
 def get_sample_images():
