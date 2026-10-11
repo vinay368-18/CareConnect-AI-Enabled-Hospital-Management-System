@@ -1,0 +1,478 @@
+diff -ruN a/cvd-ai-service/api_server.py b/cvd-ai-service/api_server.py
+--- a/cvd-ai-service/api_server.py	2026-10-10 02:25:01.174726838 +0000
++++ b/cvd-ai-service/api_server.py	2026-10-10 02:25:26.125194820 +0000
+@@ -9,12 +9,13 @@
+ from pathlib import Path
+ from typing import Optional, Dict, Any, List
+ 
+-from fastapi import FastAPI, File, UploadFile, Form, HTTPException
++from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Response
+ from fastapi.middleware.cors import CORSMiddleware
+ from pydantic import BaseModel
+ from PIL import Image
+ 
+ from inference import RetinalPredictor
++from vessel_segmentation import VesselSegmenter
+ 
+ app = FastAPI(
+     title="CareConnect CVD & Retinal AI Microservice",
+@@ -32,13 +33,20 @@
+ 
+ # Global Predictor instance
+ PREDICTOR: Optional[RetinalPredictor] = None
++VESSEL: Optional[VesselSegmenter] = None
+ 
+ @app.on_event("startup")
+ def startup_event():
+-    global PREDICTOR
++    global PREDICTOR, VESSEL
+     print("[CVD API] Initializing RetinalPredictor PyTorch model...")
+     PREDICTOR = RetinalPredictor()
+     print("[CVD API] PyTorch model loaded successfully on CPU.")
++    try:
++        VESSEL = VesselSegmenter()
++        print("[CVD API] Residual U-Net vessel segmentation model loaded.")
++    except Exception as e:  # the rest of the API keeps working without it
++        VESSEL = None
++        print(f"[CVD API] Vessel segmentation disabled: {e}")
+ 
+ @app.get("/")
+ def root():
+@@ -53,7 +61,8 @@
+ def health():
+     return {
+         "status": "healthy",
+-        "model_loaded": PREDICTOR is not None
++        "model_loaded": PREDICTOR is not None,
++        "vessel_model_loaded": VESSEL is not None
+     }
+ 
+ def compute_overall_assessment(results: Dict[str, Any]) -> Dict[str, str]:
+@@ -147,6 +156,27 @@
+         "reliability_badge": results.get("cvd_reliability_badge", "")
+     }
+ 
++@app.post("/segment")
++def segment_vessels(file: UploadFile = File(...)):
++    """Residual U-Net vessel segmentation. Returns a PNG overlay; vessel density is in the X-Vessel-Density header."""
++    if VESSEL is None:
++        raise HTTPException(status_code=503, detail="Vessel segmentation model not loaded")
++    try:
++        image = Image.open(io.BytesIO(file.file.read())).convert("RGB")
++    except Exception as e:
++        raise HTTPException(status_code=400, detail=f"Invalid image file: {str(e)}")
++
++    result = VESSEL.segment(image)
++    return Response(
++        content=result["overlay_png"],
++        media_type="image/png",
++        headers={
++            "X-Vessel-Density": f"{result['vessel_density']:.2f}",
++            "X-Vessel-Image-Size": f"{result['size'][0]}x{result['size'][1]}",
++            "Access-Control-Expose-Headers": "X-Vessel-Density, X-Vessel-Image-Size",
++        },
++    )
++
+ @app.get("/sample-images")
+ def get_sample_images():
+     """List demo retinal fundus images available on the system."""
+diff -ruN a/cvd-ai-service/requirements.txt b/cvd-ai-service/requirements.txt
+--- a/cvd-ai-service/requirements.txt	2026-10-10 02:25:01.181500018 +0000
++++ b/cvd-ai-service/requirements.txt	2026-10-10 02:25:26.125322685 +0000
+@@ -7,3 +7,4 @@
+ matplotlib==3.11.2
+ gradio==6.29.0
+ pandas==3.0.6
++opencv-python-headless>=4.9   # CLAHE for the Residual U-Net vessel segmentation
+diff -ruN a/cvd-ai-service/vessel_segmentation.py b/cvd-ai-service/vessel_segmentation.py
+--- a/cvd-ai-service/vessel_segmentation.py	1970-01-01 00:00:00.000000000 +0000
++++ b/cvd-ai-service/vessel_segmentation.py	2026-10-10 02:25:01.217035738 +0000
+@@ -0,0 +1,155 @@
++"""
++Residual U-Net retinal vessel segmentation for the CareConnect AI service.
++
++The architecture, pre-processing (green channel + CLAHE, applied per 256x256 patch)
++and overlapping-tile inference are identical to the training notebook
++(residual_unet_vessel_segmentation.ipynb), so the trained weights behave the same here.
++
++Weights file: models/residual_unet_best.pt  (copy of residual_unet_green_clahe_best.pt from training)
++"""
++import threading
++from pathlib import Path
++from typing import Dict, Optional
++
++import cv2
++import numpy as np
++import torch
++import torch.nn as nn
++import torch.nn.functional as F
++from PIL import Image
++
++PATCH = 256          # training patch size
++STRIDE = 128         # tile overlap used for inference (same as the notebook)
++MAX_SIDE = 1024      # large photos are shrunk so the longer side is at most this (speed + similar vessel scale to training data)
++THRESHOLD = 0.5
++DEFAULT_WEIGHTS = Path(__file__).parent / "models" / "residual_unet_best.pt"
++
++
++class ResBlock(nn.Module):
++    """conv-BN-ReLU-conv-BN + shortcut -> ReLU (identical to the training notebook)."""
++
++    def __init__(self, cin, cout):
++        super().__init__()
++        self.c1 = nn.Conv2d(cin, cout, 3, padding=1, bias=False)
++        self.b1 = nn.BatchNorm2d(cout)
++        self.c2 = nn.Conv2d(cout, cout, 3, padding=1, bias=False)
++        self.b2 = nn.BatchNorm2d(cout)
++        self.sc = nn.Identity() if cin == cout else nn.Sequential(
++            nn.Conv2d(cin, cout, 1, bias=False), nn.BatchNorm2d(cout))
++
++    def forward(self, x):
++        o = F.relu(self.b1(self.c1(x)))
++        o = self.b2(self.c2(o))
++        return F.relu(o + self.sc(x))
++
++
++class ResUNet(nn.Module):
++    def __init__(self, in_ch=1, base=32, depth=4):
++        super().__init__()
++        f = [base * 2 ** i for i in range(depth + 1)]
++        self.enc = nn.ModuleList([ResBlock(in_ch, f[0])] + [ResBlock(f[i], f[i + 1]) for i in range(depth)])
++        self.pool = nn.MaxPool2d(2)
++        self.up = nn.ModuleList([nn.ConvTranspose2d(f[i + 1], f[i], 2, stride=2) for i in reversed(range(depth))])
++        self.dec = nn.ModuleList([ResBlock(f[i] * 2, f[i]) for i in reversed(range(depth))])
++        self.out = nn.Conv2d(f[0], 1, 1)
++
++    def forward(self, x):
++        skips = []
++        x = self.enc[0](x)
++        skips.append(x)
++        for e in self.enc[1:-1]:
++            x = e(self.pool(x))
++            skips.append(x)
++        x = self.enc[-1](self.pool(x))
++        for up, dec, sk in zip(self.up, self.dec, reversed(skips)):
++            x = dec(torch.cat([up(x), sk], 1))
++        return self.out(x)  # raw logits
++
++
++def _positions(length: int):
++    pos = list(range(0, length - PATCH + 1, STRIDE))
++    if pos[-1] != length - PATCH:
++        pos.append(length - PATCH)
++    return pos
++
++
++class VesselSegmenter:
++    def __init__(self, weights_path: Optional[str] = None, device: str = "cpu", max_side: int = MAX_SIDE):
++        path = Path(weights_path) if weights_path else DEFAULT_WEIGHTS
++        if not path.exists():
++            raise FileNotFoundError(f"Vessel model weights not found: {path}")
++        ck = torch.load(path, map_location=device, weights_only=True)
++        if ck.get("preproc", "green_clahe") != "green_clahe":
++            raise ValueError("These weights were not trained with green_clahe pre-processing.")
++        self.device = torch.device(device)
++        self.max_side = max_side
++        self.model = ResUNet(1, int(ck.get("base", 32))).to(self.device)
++        self.model.load_state_dict(ck["model"])
++        self.model.eval()
++        self._lock = threading.Lock()   # one image at a time (CPU friendly; also CLAHE objects are not thread-safe)
++
++    # ---------------------------------------------------------------- helpers
++    def _prepare(self, image: Image.Image) -> np.ndarray:
++        rgb = np.array(image.convert("RGB"))
++        h, w = rgb.shape[:2]
++        scale = self.max_side / max(h, w)
++        if scale < 1.0:
++            rgb = cv2.resize(rgb, (int(round(w * scale)), int(round(h * scale))), interpolation=cv2.INTER_AREA)
++        return rgb
++
++    @staticmethod
++    def _fov_mask(rgb: np.ndarray) -> np.ndarray:
++        """Circular retina region (the black border around the photo is excluded)."""
++        gray = cv2.GaussianBlur(cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY), (0, 0), 3)
++        fov = (gray > 12).astype(np.uint8)
++        fov = cv2.morphologyEx(fov, cv2.MORPH_CLOSE, np.ones((15, 15), np.uint8))
++        n, labels, stats, _ = cv2.connectedComponentsWithStats(fov)
++        if n > 1:
++            fov = (labels == 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))).astype(np.uint8)
++        fov = cv2.erode(fov, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9)))
++        return fov.astype(bool)
++
++    @torch.no_grad()
++    def _probability_map(self, rgb: np.ndarray, batch: int = 8) -> np.ndarray:
++        h, w = rgb.shape[:2]
++        ph, pw = max(0, PATCH - h), max(0, PATCH - w)
++        if ph or pw:
++            rgb = np.pad(rgb, ((0, ph), (0, pw), (0, 0)), mode="reflect")
++        hh, ww = rgb.shape[:2]
++        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
++        coords = [(y, x) for y in _positions(hh) for x in _positions(ww)]
++        acc = np.zeros((hh, ww), np.float32)
++        cnt = np.zeros((hh, ww), np.float32)
++        for i in range(0, len(coords), batch):
++            cs = coords[i:i + batch]
++            tiles = np.stack([clahe.apply(np.ascontiguousarray(rgb[y:y + PATCH, x:x + PATCH, 1])) for y, x in cs])
++            xb = torch.from_numpy(tiles.astype(np.float32) / 255.0)[:, None].to(self.device)
++            pr = torch.sigmoid(self.model(xb))[:, 0].cpu().numpy()
++            for (y, x), p in zip(cs, pr):
++                acc[y:y + PATCH, x:x + PATCH] += p
++                cnt[y:y + PATCH, x:x + PATCH] += 1
++        return (acc / cnt)[:h, :w]
++
++    @staticmethod
++    def _overlay_png(rgb: np.ndarray, vessels: np.ndarray) -> bytes:
++        out = rgb.astype(np.float32)
++        colour = np.array([0, 255, 160], np.float32)
++        out[vessels] = 0.2 * out[vessels] + 0.8 * colour
++        ok, buf = cv2.imencode(".png", cv2.cvtColor(out.astype(np.uint8), cv2.COLOR_RGB2BGR))
++        if not ok:
++            raise RuntimeError("PNG encoding failed")
++        return buf.tobytes()
++
++    # ------------------------------------------------------------------ API
++    def segment(self, image: Image.Image) -> Dict:
++        with self._lock:
++            rgb = self._prepare(image)
++            prob = self._probability_map(rgb)
++            fov = self._fov_mask(rgb)
++            vessels = (prob >= THRESHOLD) & fov
++            density = float(vessels.sum() / max(1, fov.sum()) * 100.0)
++            return {
++                "overlay_png": self._overlay_png(rgb, vessels),
++                "vessel_density": density,     # % of the retinal area classified as vessel
++                "size": (rgb.shape[1], rgb.shape[0]),
++            }
+diff -ruN a/db/add_vessel_columns.sql b/db/add_vessel_columns.sql
+--- a/db/add_vessel_columns.sql	1970-01-01 00:00:00.000000000 +0000
++++ b/db/add_vessel_columns.sql	2026-10-10 02:25:26.126283133 +0000
+@@ -0,0 +1,4 @@
++-- Run once on the HMS database before using the vessel segmentation display.
++ALTER TABLE cvd_screenings
++    ADD COLUMN vessel_overlay_path VARCHAR(255) NULL,
++    ADD COLUMN vessel_density DOUBLE NULL;
+diff -ruN a/src/main/java/com/hms/controller/CVDServlet.java b/src/main/java/com/hms/controller/CVDServlet.java
+--- a/src/main/java/com/hms/controller/CVDServlet.java	2026-10-10 02:25:01.208321531 +0000
++++ b/src/main/java/com/hms/controller/CVDServlet.java	2026-10-10 02:25:26.125823179 +0000
+@@ -150,6 +150,37 @@
+         }
+     }
+ 
++    /**
++     * Residual U-Net vessel segmentation. Optional: any failure is logged and the screening is kept as it is.
++     */
++    private void runVesselSegmentation(int screeningId, byte[] imageBytes, String savedFilename) {
++        try {
++            String name = savedFilename != null ? savedFilename : "scan.jpg";
++            CVDClient.VesselResult vessels = cvdClient.segmentVessels(imageBytes, name);
++
++            String baseName = Paths.get(name).getFileName().toString();
++            int dot = baseName.lastIndexOf('.');
++            if (dot > 0) {
++                baseName = baseName.substring(0, dot);
++            }
++            String overlayName = "vessel_" + baseName + ".png";
++
++            String uploadPath = getServletContext().getRealPath("/uploads/fundus");
++            if (uploadPath == null) {
++                uploadPath = new File("src/main/webapp/uploads/fundus").getAbsolutePath();
++            }
++            File uploadDir = new File(uploadPath);
++            if (!uploadDir.exists()) {
++                uploadDir.mkdirs();
++            }
++            Files.write(new File(uploadDir, overlayName).toPath(), vessels.getOverlayPng());
++
++            cvdDAO.updateVesselResult(screeningId, "uploads/fundus/" + overlayName, vessels.getDensityPercent());
++        } catch (Exception e) {
++            System.err.println("[CVD] Vessel segmentation skipped: " + e.getMessage());
++        }
++    }
++
+     private void analyzeFundusScan(HttpServletRequest request, HttpServletResponse response)
+             throws ServletException, IOException {
+ 
+@@ -239,6 +270,7 @@
+             int savedId = cvdDAO.saveScreening(screeningResult);
+ 
+             if (savedId > 0) {
++                runVesselSegmentation(savedId, imageBytes, savedFilename);
+                 response.sendRedirect(request.getContextPath() + "/CVDServlet?action=view&id=" + savedId + "&msg=analyzed");
+             } else {
+                 response.sendRedirect(request.getContextPath() + "/CVDServlet?action=list&error=save_failed");
+diff -ruN a/src/main/java/com/hms/dao/CVDScreeningDAO.java b/src/main/java/com/hms/dao/CVDScreeningDAO.java
+--- a/src/main/java/com/hms/dao/CVDScreeningDAO.java	2026-10-10 02:25:01.201668010 +0000
++++ b/src/main/java/com/hms/dao/CVDScreeningDAO.java	2026-10-10 02:25:26.125672414 +0000
+@@ -208,6 +208,23 @@
+         return 0;
+     }
+ 
++    /**
++     * Stores the vessel-segmentation result for a saved screening.
++     * Needs the columns from db/add_vessel_columns.sql; if they are missing the screening itself is unaffected.
++     */
++    public void updateVesselResult(int screeningId, String overlayPath, double densityPercent) {
++        String sql = "UPDATE cvd_screenings SET vessel_overlay_path = ?, vessel_density = ? WHERE screening_id = ?";
++        try (Connection conn = DBConnection.getConnection();
++             PreparedStatement ps = conn.prepareStatement(sql)) {
++            ps.setString(1, overlayPath);
++            ps.setDouble(2, densityPercent);
++            ps.setInt(3, screeningId);
++            ps.executeUpdate();
++        } catch (SQLException e) {
++            System.err.println("[CVD] Could not save vessel result (run db/add_vessel_columns.sql?): " + e.getMessage());
++        }
++    }
++
+     private CVDScreening mapResultSetToScreening(ResultSet rs) throws SQLException {
+         CVDScreening s = new CVDScreening();
+         s.setScreeningId(rs.getInt("screening_id"));
+@@ -240,6 +257,14 @@
+         s.setNotes(rs.getString("notes"));
+         s.setScreeningDate(rs.getTimestamp("screening_date"));
+ 
++        try {   // columns exist only after db/add_vessel_columns.sql has been run
++            s.setVesselOverlayPath(rs.getString("vessel_overlay_path"));
++            double density = rs.getDouble("vessel_density");
++            s.setVesselDensity(rs.wasNull() ? null : density);
++        } catch (SQLException ignored) {
++            // older database layout: no vessel columns
++        }
++
+         // Default clinical recommendations based on risk
+         if ("High Risk".equalsIgnoreCase(s.getRiskLevel())) {
+             s.setRecommendation("Immediate cardiovascular assessment recommended. Schedule ECG, lipid profile, and comprehensive cardiology consult.");
+diff -ruN a/src/main/java/com/hms/model/CVDScreening.java b/src/main/java/com/hms/model/CVDScreening.java
+--- a/src/main/java/com/hms/model/CVDScreening.java	2026-10-10 02:25:01.195103937 +0000
++++ b/src/main/java/com/hms/model/CVDScreening.java	2026-10-10 02:25:26.125437981 +0000
+@@ -22,6 +22,10 @@
+     private Integer appointmentId;
+     private String imagePath;
+ 
++    // Residual U-Net vessel segmentation (optional; null when not available)
++    private String vesselOverlayPath;
++    private Double vesselDensity;           // % of the retinal area classified as vessel
++
+     // AI Prediction Results
+     private String cvdPrediction;              // "Positive" or "Negative"
+     private double cvdProbability;             // 0.0 to 1.0
+@@ -205,6 +209,22 @@
+         this.screeningDate = screeningDate;
+     }
+ 
++    public String getVesselOverlayPath() {
++        return vesselOverlayPath;
++    }
++
++    public void setVesselOverlayPath(String vesselOverlayPath) {
++        this.vesselOverlayPath = vesselOverlayPath;
++    }
++
++    public Double getVesselDensity() {
++        return vesselDensity;
++    }
++
++    public void setVesselDensity(Double vesselDensity) {
++        this.vesselDensity = vesselDensity;
++    }
++
+     // Helper formatting methods for UI presentation
+     public int getCvdPercent() {
+         return (int) Math.round(cvdProbability * 100);
+diff -ruN a/src/main/java/com/hms/service/CVDClient.java b/src/main/java/com/hms/service/CVDClient.java
+--- a/src/main/java/com/hms/service/CVDClient.java	2026-10-10 02:25:01.188326397 +0000
++++ b/src/main/java/com/hms/service/CVDClient.java	2026-10-10 02:25:26.125535384 +0000
+@@ -75,6 +75,57 @@
+         return parsePredictionResponse(response.body());
+     }
+ 
++    /** Result of the Residual U-Net vessel segmentation: PNG overlay + vessel density (% of retinal area). */
++    public static class VesselResult {
++        private final byte[] overlayPng;
++        private final double densityPercent;
++
++        public VesselResult(byte[] overlayPng, double densityPercent) {
++            this.overlayPng = overlayPng;
++            this.densityPercent = densityPercent;
++        }
++
++        public byte[] getOverlayPng() {
++            return overlayPng;
++        }
++
++        public double getDensityPercent() {
++            return densityPercent;
++        }
++    }
++
++    /**
++     * Sends the fundus image to the Residual U-Net endpoint and returns the vessel overlay.
++     */
++    public VesselResult segmentVessels(byte[] imageBytes, String filename) throws IOException, InterruptedException {
++        String boundary = "----WebKitFormBoundary" + UUID.randomUUID().toString().replace("-", "");
++        byte[] multipartBody = createMultipartBody(boundary, imageBytes, filename);
++
++        HttpRequest request = HttpRequest.newBuilder()
++                .uri(URI.create(baseUrl + "/segment"))
++                .timeout(Duration.ofSeconds(120))
++                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
++                .POST(HttpRequest.BodyPublishers.ofByteArray(multipartBody))
++                .build();
++
++        HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
++
++        if (response.statusCode() != 200) {
++            throw new IOException("Vessel segmentation returned HTTP " + response.statusCode());
++        }
++
++        double density = 0.0;
++        String header = response.headers().firstValue("X-Vessel-Density").orElse(null);
++        if (header != null) {
++            try {
++                density = Double.parseDouble(header.trim());
++            } catch (NumberFormatException e) {
++                density = 0.0;
++            }
++        }
++        return new VesselResult(response.body(), density);
++    }
++
+     private byte[] createMultipartBody(String boundary, byte[] fileBytes, String filename) throws IOException {
+         ByteArrayOutputStream baos = new ByteArrayOutputStream();
+ 
+diff -ruN a/src/main/webapp/cvd-report.jsp b/src/main/webapp/cvd-report.jsp
+--- a/src/main/webapp/cvd-report.jsp	2026-10-10 02:25:01.214027618 +0000
++++ b/src/main/webapp/cvd-report.jsp	2026-10-10 02:25:26.126093980 +0000
+@@ -370,12 +370,26 @@
+         <!-- Diagnostic Grid -->
+         <div class="diagnostic-section">
+ 
+-            <!-- Fundus Photograph -->
+-            <div class="scan-preview-box">
+-                <img src="${pageContext.request.contextPath}/<%= s.getImagePath() != null ? s.getImagePath() : "uploads/fundus/samples/img00330.jpg" %>"
+-                     alt="Retinal Fundus Scan"
+-                     onerror="this.src='${pageContext.request.contextPath}/uploads/fundus/samples/img00330.jpg';">
+-                <div class="caption">Retinal Fundus Photography (Input Tensor: 224x224)</div>
++            <!-- Fundus Photograph (+ Residual U-Net vessel segmentation) -->
++            <div style="display: flex; flex-direction: column; gap: 16px;">
++                <div class="scan-preview-box">
++                    <img src="${pageContext.request.contextPath}/<%= s.getImagePath() != null ? s.getImagePath() : "uploads/fundus/samples/img00330.jpg" %>"
++                         alt="Retinal Fundus Scan"
++                         onerror="this.src='${pageContext.request.contextPath}/uploads/fundus/samples/img00330.jpg';">
++                    <div class="caption">Retinal Fundus Photography (Input Tensor: 224x224)</div>
++                </div>
++
++                <% if (s.getVesselOverlayPath() != null && !s.getVesselOverlayPath().isEmpty()) { %>
++                <div class="scan-preview-box">
++                    <img src="${pageContext.request.contextPath}/<%= s.getVesselOverlayPath() %>"
++                         alt="Segmented retinal vessels"
++                         onerror="this.parentNode.style.display='none';">
++                    <div class="caption">
++                        Vessel segmentation (Residual U-Net)<%= s.getVesselDensity() != null ? " &middot; vessel density " + String.format("%.1f", s.getVesselDensity()) + "% of retinal area" : "" %><br>
++                        Research output &ndash; not clinically validated
++                    </div>
++                </div>
++                <% } %>
+             </div>
+ 
+             <!-- Deep Learning Prediction Scores -->
