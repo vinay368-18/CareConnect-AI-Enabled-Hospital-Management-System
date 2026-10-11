@@ -208,6 +208,23 @@ public class CVDScreeningDAO {
         return 0;
     }
 
+    /**
+     * Stores the vessel-segmentation result for a saved screening.
+     * Needs the columns from db/add_vessel_columns.sql; if they are missing the screening itself is unaffected.
+     */
+    public void updateVesselResult(int screeningId, String overlayPath, double densityPercent) {
+        String sql = "UPDATE cvd_screenings SET vessel_overlay_path = ?, vessel_density = ? WHERE screening_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, overlayPath);
+            ps.setDouble(2, densityPercent);
+            ps.setInt(3, screeningId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("[CVD] Could not save vessel result (run db/add_vessel_columns.sql?): " + e.getMessage());
+        }
+    }
+
     private CVDScreening mapResultSetToScreening(ResultSet rs) throws SQLException {
         CVDScreening s = new CVDScreening();
         s.setScreeningId(rs.getInt("screening_id"));
@@ -239,6 +256,14 @@ public class CVDScreeningDAO {
         s.setRiskLevel(rs.getString("risk_level"));
         s.setNotes(rs.getString("notes"));
         s.setScreeningDate(rs.getTimestamp("screening_date"));
+
+        try {   // columns exist only after db/add_vessel_columns.sql has been run
+            s.setVesselOverlayPath(rs.getString("vessel_overlay_path"));
+            double density = rs.getDouble("vessel_density");
+            s.setVesselDensity(rs.wasNull() ? null : density);
+        } catch (SQLException ignored) {
+            // older database layout: no vessel columns
+        }
 
         // Default clinical recommendations based on risk
         if ("High Risk".equalsIgnoreCase(s.getRiskLevel())) {
