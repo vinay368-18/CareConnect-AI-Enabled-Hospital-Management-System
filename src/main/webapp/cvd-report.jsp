@@ -24,7 +24,7 @@
         }
 
         .report-container {
-            max-width: 950px;
+            max-width: 1180px;
             margin: auto;
             background: white;
             border-radius: 16px;
@@ -137,7 +137,7 @@
         /* Scan + Results Layout */
         .diagnostic-section {
             display: grid;
-            grid-template-columns: 320px 1fr;
+            grid-template-columns: 560px 1fr;
             gap: 28px;
             margin-bottom: 28px;
         }
@@ -152,8 +152,10 @@
 
         .scan-preview-box img {
             width: 100%;
-            height: 250px;
-            object-fit: cover;
+            height: auto;
+            max-height: 560px;
+            object-fit: contain;
+            background: #000;
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.06);
         }
@@ -376,7 +378,7 @@
                     <img src="${pageContext.request.contextPath}/<%= s.getImagePath() != null ? s.getImagePath() : "uploads/fundus/samples/img00330.jpg" %>"
                          alt="Retinal Fundus Scan"
                          onerror="this.src='${pageContext.request.contextPath}/uploads/fundus/samples/img00330.jpg';">
-                    <div class="caption">Retinal Fundus Photography (Input Tensor: 224x224)</div>
+                    <div class="caption">Retinal fundus photograph (full uploaded image; the classifier analyses a 224x224 resized copy)</div>
                 </div>
 
                 <% if (s.getVesselOverlayPath() != null && !s.getVesselOverlayPath().isEmpty()) { %>
