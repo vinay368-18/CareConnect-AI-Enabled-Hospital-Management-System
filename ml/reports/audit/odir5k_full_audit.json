@@ -1,0 +1,148 @@
+{
+  "dataset": "ODIR-5K",
+  "status": "complete",
+  "full_df_csv": "C:\\Users\\vinay\\CVD Project\\ODIR-5K\\full_df.csv",
+  "full_df_rows": 6392,
+  "full_df_columns": [
+    "ID",
+    "Patient Age",
+    "Patient Sex",
+    "Left-Fundus",
+    "Right-Fundus",
+    "Left-Diagnostic Keywords",
+    "Right-Diagnostic Keywords",
+    "N",
+    "D",
+    "G",
+    "C",
+    "A",
+    "H",
+    "M",
+    "O",
+    "filepath",
+    "labels",
+    "target",
+    "filename"
+  ],
+  "data_xlsx_error": "`Import openpyxl` failed.  Use pip or conda to install the openpyxl package.",
+  "images_on_disk": 6392,
+  "csv_unique_filenames": 6392,
+  "matched_files": 6392,
+  "missing_from_disk": 0,
+  "extra_on_disk": 0,
+  "total_patients": 3358,
+  "label_analysis": {
+    "N_Normal": {
+      "0": 4291,
+      "1": 2101
+    },
+    "D_Diabetes/DR": {
+      "0": 4269,
+      "1": 2123
+    },
+    "G_Glaucoma": {
+      "0": 5995,
+      "1": 397
+    },
+    "C_Cataract": {
+      "0": 5990,
+      "1": 402
+    },
+    "A_AMD": {
+      "0": 6073,
+      "1": 319
+    },
+    "H_Hypertension (retinopathy)": {
+      "0": 6189,
+      "1": 203
+    },
+    "M_Myopia": {
+      "0": 6086,
+      "1": 306
+    },
+    "O_Other": {
+      "0": 4804,
+      "1": 1588
+    },
+    "N_Normal_patient_level": {
+      "0": 2278,
+      "1": 1080
+    },
+    "D_Diabetes/DR_patient_level": {
+      "0": 2253,
+      "1": 1105
+    },
+    "G_Glaucoma_patient_level": {
+      "0": 3152,
+      "1": 206
+    },
+    "C_Cataract_patient_level": {
+      "0": 3150,
+      "1": 208
+    },
+    "A_AMD_patient_level": {
+      "0": 3195,
+      "1": 163
+    },
+    "H_Hypertension (retinopathy)_patient_level": {
+      "0": 3255,
+      "1": 103
+    },
+    "M_Myopia_patient_level": {
+      "0": 3187,
+      "1": 171
+    },
+    "O_Other_patient_level": {
+      "0": 2453,
+      "1": 905
+    },
+    "cvd_related_diagnostic_keywords": {
+      "suspected retinal vascular sheathing": 1,
+      "idiopathic choroidal neovascularization": 3,
+      "white vessel\uff0cproliferative diabetic retinopathy\uff0csuspected microvascular anomalies": 1,
+      "retinal vascular sheathing": 1,
+      "intraretinal microvascular abnormality": 2
+    },
+    "top_20_diagnostic_keywords": {
+      "normal fundus": 5501,
+      "moderate non proliferative retinopathy": 1462,
+      "mild nonproliferative retinopathy": 900,
+      "cataract": 518,
+      "pathological myopia": 424,
+      "glaucoma": 397,
+      "dry age-related macular degeneration": 388,
+      "severe nonproliferative retinopathy": 286,
+      "drusen": 270,
+      "macular epiretinal membrane": 238,
+      "epiretinal membrane": 215,
+      "hypertensive retinopathy": 208,
+      "myelinated nerve fibers": 127,
+      "refractive media opacity": 106,
+      "vitreous degeneration": 102,
+      "normal fundus\uff0clens dust": 86,
+      "lens dust\uff0cnormal fundus": 83,
+      "wet age-related macular degeneration": 82,
+      "moderate non proliferative retinopathy\uff0chypertensive retinopathy": 62,
+      "moderate non proliferative retinopathy\uff0cepiretinal membrane": 50
+    }
+  },
+  "sample_verified": 500,
+  "corrupted_in_sample": 0,
+  "image_formats": {
+    "JPEG": 500
+  },
+  "image_dimensions_sample": {
+    "width_min": 512,
+    "width_max": 512,
+    "height_min": 512,
+    "height_max": 512
+  },
+  "cvd_compatibility": {
+    "has_cvd_label": false,
+    "has_vascular_disease_label": false,
+    "has_hypertensive_retinopathy": true,
+    "has_diabetes_retinopathy": true,
+    "assessment": "ODIR-5K contains ocular disease labels (N, D, G, C, A, H, M, O). The 'H' column indicates hypertensive retinopathy (an ocular finding), NOT systemic cardiovascular disease history. The 'D' column indicates diabetic retinopathy, NOT a diabetes diagnosis. There is NO cardiovascular disease (CVD) or vascular_disease label in ODIR-5K. Direct label mapping to mBRSET's vascular_disease target is NOT scientifically valid.",
+    "cvd_keywords_found_in_diagnoses": true
+  }
+}

@@ -1,0 +1,5 @@
+comparison,overlap_type,count,is_real_overlap,note
+mBRSET vs ODIR-5K,numeric_id_coincidental,1134,False,"mBRSET and ODIR-5K use independent patient ID namespaces (different institutions, countries, and study designs). Numeric overlap of IDs is coincidental and does NOT indicate that the same physical patients appear in both datasets. Cross-dataset patient leakage is not a concern."
+mbrset_vs_odir,filename,0,False,No overlap
+mbrset_vs_brset,filename,0,False,No overlap
+odir_vs_brset,filename,0,False,No overlap

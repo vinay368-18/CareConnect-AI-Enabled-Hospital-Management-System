@@ -1,0 +1,47 @@
+{
+  "audit_timestamp": "2026-10-18T12:21:35",
+  "datasets": {
+    "mBRSET": {
+      "status": "complete",
+      "images_on_disk": 4002,
+      "metadata_rows": 5164,
+      "matched_files": 4002,
+      "missing_from_disk": 1162,
+      "total_patients": 1291,
+      "patients_with_images": 1289,
+      "corrupted_images": 0,
+      "has_cvd_label": true,
+      "usable_for_cvd_training": true
+    },
+    "BRSET": {
+      "status": "complete",
+      "images_on_disk": 187,
+      "has_labels": true,
+      "is_complete": false,
+      "usable_for_cvd_training": false,
+      "reason": "Only 187 images from a partial download shard. No label CSV(s) found within the extracted data."
+    },
+    "ODIR-5K": {
+      "status": "complete",
+      "images_on_disk": 6392,
+      "metadata_rows": 6392,
+      "total_patients": 3358,
+      "has_cvd_label": false,
+      "usable_for_cvd_training": false,
+      "potential_use": "Retinal image pretraining or ocular disease classification",
+      "reason": "ODIR-5K contains ocular disease labels (N, D, G, C, A, H, M, O). The 'H' column indicates hypertensive retinopathy (an ocular finding), NOT systemic cardiovascular disease history. The 'D' column indicates diabetic retinopathy, NOT a diabetes diagnosis. There is NO cardiovascular disease (CVD) or vascular_disease label in ODIR-5K. Direct label mapping to mBRSET's vascular_disease target is NOT scientifically valid."
+    }
+  },
+  "cross_dataset": {
+    "analysis": "cross_dataset_overlap",
+    "mbrset_patient_count": 1291,
+    "odir_patient_count": 3358,
+    "numeric_id_overlap": 1134,
+    "id_overlap_note": "mBRSET and ODIR-5K use independent patient ID namespaces (different institutions, countries, and study designs). Numeric overlap of IDs is coincidental and does NOT indicate that the same physical patients appear in both datasets. Cross-dataset patient leakage is not a concern.",
+    "filename_overlap": {
+      "mbrset_vs_odir": 0,
+      "mbrset_vs_brset": 0,
+      "odir_vs_brset": 0
+    }
+  }
+}

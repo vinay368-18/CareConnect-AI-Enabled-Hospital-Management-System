@@ -1,0 +1,51 @@
+dataset,label,value,count
+mBRSET,vascular_disease,0.0,4220
+mBRSET,vascular_disease,1.0,868
+mBRSET,vascular_disease,nan,76
+mBRSET,vascular_disease_patient_level,0.0,1055
+mBRSET,vascular_disease_patient_level,1.0,217
+mBRSET,vascular_disease_patient_level,nan,19
+mBRSET,systemic_hypertension,1.0,3656
+mBRSET,systemic_hypertension,0.0,1464
+mBRSET,systemic_hypertension,nan,44
+mBRSET,systemic_hypertension_patient_level,1.0,914
+mBRSET,systemic_hypertension_patient_level,0.0,366
+mBRSET,systemic_hypertension_patient_level,nan,11
+mBRSET,final_icdr,0.0,3750
+mBRSET,final_icdr,2.0,568
+mBRSET,final_icdr,nan,280
+mBRSET,final_icdr,1.0,272
+mBRSET,final_icdr,4.0,212
+mBRSET,final_icdr,3.0,82
+ODIR-5K,N_Normal,0,4291
+ODIR-5K,N_Normal,1,2101
+ODIR-5K,D_Diabetes/DR,0,4269
+ODIR-5K,D_Diabetes/DR,1,2123
+ODIR-5K,G_Glaucoma,0,5995
+ODIR-5K,G_Glaucoma,1,397
+ODIR-5K,C_Cataract,0,5990
+ODIR-5K,C_Cataract,1,402
+ODIR-5K,A_AMD,0,6073
+ODIR-5K,A_AMD,1,319
+ODIR-5K,H_Hypertension (retinopathy),0,6189
+ODIR-5K,H_Hypertension (retinopathy),1,203
+ODIR-5K,M_Myopia,0,6086
+ODIR-5K,M_Myopia,1,306
+ODIR-5K,O_Other,0,4804
+ODIR-5K,O_Other,1,1588
+ODIR-5K,N_Normal_patient_level,0,2278
+ODIR-5K,N_Normal_patient_level,1,1080
+ODIR-5K,D_Diabetes/DR_patient_level,0,2253
+ODIR-5K,D_Diabetes/DR_patient_level,1,1105
+ODIR-5K,G_Glaucoma_patient_level,0,3152
+ODIR-5K,G_Glaucoma_patient_level,1,206
+ODIR-5K,C_Cataract_patient_level,0,3150
+ODIR-5K,C_Cataract_patient_level,1,208
+ODIR-5K,A_AMD_patient_level,0,3195
+ODIR-5K,A_AMD_patient_level,1,163
+ODIR-5K,H_Hypertension (retinopathy)_patient_level,0,3255
+ODIR-5K,H_Hypertension (retinopathy)_patient_level,1,103
+ODIR-5K,M_Myopia_patient_level,0,3187
+ODIR-5K,M_Myopia_patient_level,1,171
+ODIR-5K,O_Other_patient_level,0,2453
+ODIR-5K,O_Other_patient_level,1,905

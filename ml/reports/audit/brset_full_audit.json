@@ -1,0 +1,68 @@
+{
+  "dataset": "BRSET",
+  "status": "complete",
+  "total_images_on_disk": 187,
+  "csv_files_found": [],
+  "csv_count": 0,
+  "parent_csv_files": [
+    "C:\\Users\\vinay\\CVD Project\\BRSET_v1.0.2-20261001T140733Z-1-006\\label_brset.csv"
+  ],
+  "csv_schema_label_brset.csv": [
+    "image_id",
+    "patient_id",
+    "camera",
+    "patient_age",
+    "comorbidities",
+    "diabetes_time_y",
+    "insulin",
+    "patient_sex",
+    "exam_eye",
+    "diabetes",
+    "nationality",
+    "optic_disc",
+    "vessels",
+    "macula",
+    "DR_SDRG",
+    "DR_ICDR",
+    "focus",
+    "illumination",
+    "image_field",
+    "artifacts",
+    "diabetic_retinopathy",
+    "macular_edema",
+    "scar",
+    "nevus",
+    "amd",
+    "vascular_occlusion",
+    "hypertensive_retinopathy",
+    "drusen",
+    "hemorrhage",
+    "retinal_detachment",
+    "myopic_fundus",
+    "increased_cup_disc",
+    "other",
+    "quality"
+  ],
+  "csv_rows_label_brset.csv": 16266,
+  "image_directories": [
+    "C:\\Users\\vinay\\CVD Project\\BRSET_v1.0.2-20261001T140733Z-1-006\\BRSET_v1.0.2\\physionet.org\\files\\brazilian-ophthalmological\\1.0.2\\fundus_photos"
+  ],
+  "corrupted_images": [],
+  "corrupted_count": 0,
+  "image_formats": {
+    "JPEG": 187
+  },
+  "image_dimensions": {
+    "width_min": 2390,
+    "width_max": 2984,
+    "height_min": 1880,
+    "height_max": 2304
+  },
+  "assessment": {
+    "has_labels": true,
+    "is_complete_download": false,
+    "shard_identifier": "-1-006 (single part of multi-part download)",
+    "usable_for_supervised_cvd": false,
+    "reason": "Only 187 images from a partial download shard. No label CSV(s) found within the extracted data."
+  }
+}

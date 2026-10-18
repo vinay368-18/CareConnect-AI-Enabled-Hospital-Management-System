@@ -1,0 +1,45 @@
+{
+  "project_name": "CareConnect Retinal AI - Experiment B",
+  "experiment_name": "experiment_b_efficientnet_b0",
+  "version": "2.0.0",
+  "data": {
+    "splits_dir": "ml/datasets/splits",
+    "train_split": "ml/datasets/splits/train.csv",
+    "val_split": "ml/datasets/splits/val.csv",
+    "test_split": "ml/datasets/splits/test.csv",
+    "image_size": 224,
+    "mean": [0.485, 0.456, 0.406],
+    "std": [0.229, 0.224, 0.225]
+  },
+  "model": {
+    "architecture": "efficientnet_b0",
+    "pretrained": true,
+    "dropout": 0.4,
+    "clinical_dim": 0,
+    "num_dr_classes": 5,
+    "heads": ["vascular_disease", "systemic_hypertension", "dr_grade"],
+    "dr_classes": ["No DR", "Mild", "Moderate", "Severe", "Proliferative"]
+  },
+  "training": {
+    "seed": 42,
+    "epochs": 25,
+    "batch_size": 16,
+    "learning_rate_backbone": 0.0001,
+    "learning_rate_head": 0.001,
+    "weight_decay": 0.01,
+    "early_stopping_patience": 5,
+    "task_weights": {
+      "vascular_disease": 1.0,
+      "systemic_hypertension": 0.5,
+      "dr_grade": 0.5
+    },
+    "num_workers": 0
+  },
+  "outputs": {
+    "checkpoints_dir": "ml/checkpoints/mbrset/experiment_b_efficientnet_b0",
+    "best_checkpoint": "ml/checkpoints/mbrset/experiment_b_efficientnet_b0/best_model.pt",
+    "last_checkpoint": "ml/checkpoints/mbrset/experiment_b_efficientnet_b0/last_model.pt",
+    "metrics_dir": "ml/metrics",
+    "logs_dir": "ml/logs"
+  }
+}
