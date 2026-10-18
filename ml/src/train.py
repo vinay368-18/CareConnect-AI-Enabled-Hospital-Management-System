@@ -153,6 +153,7 @@ def evaluate_epoch(
 
         all_vd_true.extend(targets["vascular_disease"].cpu().numpy().tolist())
         all_ht_true.extend(targets["systemic_hypertension"].cpu().numpy().tolist())
+        all_dr_true.extend(targets["dr_grade"].cpu().numpy().tolist())
         p_list = batch["metadata"]["patient"]
         all_patients.extend([int(p.item()) if isinstance(p, torch.Tensor) else int(p) for p in p_list])
         all_files.extend(batch["metadata"]["file"])
@@ -277,6 +278,10 @@ def run_training(
     print(f"Train images: {len(train_dataset)} | Val images: {len(val_dataset)}")
     print("=" * 60)
 
+    exp_name = config.get("experiment_name", "training")
+    patience = config["training"].get("early_stopping_patience", 5)
+    patience_counter = 0
+
     for ep in range(1, epochs + 1):
         t0 = time.time()
         train_res = train_one_epoch(model, train_loader, criterion, optimizer, device)
@@ -285,22 +290,26 @@ def run_training(
         elapsed = time.time() - t0
 
         vd_auc = val_res["vd_metrics"].get("roc_auc") or 0.5
+        vd_pr_auc = val_res["vd_metrics"].get("pr_auc") or 0.0
         ht_auc = val_res["ht_metrics"].get("roc_auc") or 0.5
+        ht_pr_auc = val_res["ht_metrics"].get("pr_auc") or 0.0
         dr_acc = val_res["dr_metrics"].get("accuracy") or 0.0
 
         rec = {
             "epoch": ep,
-            "train_loss": train_res["train_loss"],
-            "val_loss": val_res["val_loss"],
-            "vd_roc_auc": vd_auc,
-            "ht_roc_auc": ht_auc,
-            "dr_accuracy": dr_acc,
+            "train_loss": round(train_res["train_loss"], 4),
+            "val_loss": round(val_res["val_loss"], 4),
+            "vd_roc_auc": round(vd_auc, 4),
+            "vd_pr_auc": round(vd_pr_auc, 4),
+            "ht_roc_auc": round(ht_auc, 4),
+            "ht_pr_auc": round(ht_pr_auc, 4),
+            "dr_accuracy": round(dr_acc, 4),
             "elapsed_seconds": round(elapsed, 2),
         }
         history.append(rec)
 
         print(f"Epoch {ep:02d}/{epochs:02d} | Train Loss: {train_res['train_loss']:.4f} | "
-              f"Val Loss: {val_res['val_loss']:.4f} | VD AUC: {vd_auc:.4f} | "
+              f"Val Loss: {val_res['val_loss']:.4f} | VD AUC: {vd_auc:.4f} (PR: {vd_pr_auc:.4f}) | "
               f"HT AUC: {ht_auc:.4f} | DR Acc: {dr_acc:.4f} | ({elapsed:.1f}s)")
 
         # Save last checkpoint
@@ -312,9 +321,10 @@ def run_training(
             "weights": weights,
         }, last_ckpt_path)
 
-        # Save best checkpoint
+        # Early stopping and best checkpoint restoration
         if vd_auc > best_vd_auc:
             best_vd_auc = vd_auc
+            patience_counter = 0
             torch.save({
                 "epoch": ep,
                 "model_state_dict": model.state_dict(),
@@ -323,17 +333,23 @@ def run_training(
                 "weights": weights,
                 "val_metrics": val_res,
             }, best_ckpt_path)
+            print(f"  -> New best validation VD AUC: {best_vd_auc:.4f} (checkpoint saved)")
+        else:
+            patience_counter += 1
+            if patience_counter >= patience:
+                print(f"[Train] Early stopping triggered at epoch {ep:02d} (no improvement in VD AUC for {patience} epochs).")
+                break
 
     # Save training history
     history_df = pd.DataFrame(history)
-    history_csv_path = metrics_dir / "training_history.csv"
+    history_csv_path = metrics_dir / f"{exp_name}_history.csv"
     history_df.to_csv(history_csv_path, index=False)
     print(f"[Train] Saved training history: {history_csv_path}")
     print(f"[Train] Checkpoints saved to {checkpoints_dir}")
 
     return {
         "status": "success",
-        "epochs_completed": epochs,
+        "epochs_completed": ep,
         "best_vd_auc": best_vd_auc,
         "history": history,
         "best_checkpoint": str(best_ckpt_path),
