@@ -1,13 +1,14 @@
 {
-  "project_name": "CVD Retinal Research Prototype",
-  "version": "1.0.0",
+  "project_name": "CareConnect Retinal AI Microservice",
+  "version": "2.0.0-experiment_b",
   "model": {
-    "architecture": "efficientnet_b0",
+    "architecture": "CareConnectMultiTaskNet",
+    "backbone": "efficientnet_b0",
     "weights_file": "models/best_model.pt",
     "image_size": 224,
     "mean": [0.485, 0.456, 0.406],
     "std": [0.229, 0.224, 0.225],
-    "heads": ["cvd", "hypertension", "dr"],
+    "heads": ["vascular_disease", "systemic_hypertension", "dr_grade"],
     "dr_classes": [
       "No DR",
       "Mild",
@@ -17,15 +18,15 @@
     ]
   },
   "thresholds": {
-    "hypertension": {
-      "value": 0.5165,
-      "source": "Youden's J statistic optimized on mBRSET validation split (n=190 patients)",
-      "label": "Systemic Hypertension"
+    "vascular_disease": {
+      "value": 0.4996,
+      "source": "Youden's J statistic optimized on mBRSET validation partition (n=190 patients)",
+      "label": "Cardiovascular Disease (Vascular Disease)"
     },
-    "cvd": {
-      "value": 0.3238,
-      "source": "Youden's J statistic optimized on mBRSET validation split (n=190 patients)",
-      "label": "Cardiovascular Disease"
+    "systemic_hypertension": {
+      "value": 0.4288,
+      "source": "Youden's J statistic optimized on mBRSET validation partition (n=190 patients)",
+      "label": "Systemic Hypertension"
     },
     "dr_confidence": {
       "min_top_probability": 0.50,
@@ -34,11 +35,12 @@
     }
   },
   "reliability_badges": {
-    "cvd": "Low reliability: image-only discriminative performance is near chance (~0.56 AUC in held-out test cohort).",
-    "dr_low_confidence": "Low confidence: grade probabilities are distributed across multiple classes."
+    "cvd": "Low reliability: image-only discriminative performance on systemic vascular disease is near chance (Test ROC-AUC: 0.5202 [0.3936, 0.6416]). Not a diagnostic test.",
+    "dr": "High reliability: direct ocular microvascular condition with 76.99% test accuracy on held-out test cohort."
   },
   "disclaimers": {
-    "prediction_note": "Predictions are model-generated estimates from a research prototype and are not a medical diagnosis.",
-    "diabetes_note": "Diabetes status is not predicted by this system. DR grade is a retinal finding, not a diabetes diagnosis."
+    "prediction_note": "Predictions are model-generated estimates from a research prototype and do not constitute a medical diagnosis.",
+    "cvd_warning": "Retinal fundus images alone achieve near-chance discrimination for systemic cardiovascular disease. Attending clinician review, blood pressure check, lipid panel, and standard ECG are required.",
+    "dr_note": "Diabetic Retinopathy (DR) grading reflects retinal microvascular findings only and does not establish systemic CVD status or a diabetes diagnosis."
   }
 }

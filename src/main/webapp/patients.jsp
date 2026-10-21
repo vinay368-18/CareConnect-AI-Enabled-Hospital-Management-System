@@ -399,7 +399,7 @@
 
                             <a href="${pageContext.request.contextPath}/CVDServlet?action=new&patientId=<%= patient.getId() %>"
                                style="display: inline-block; background: #e6fffa; color: #0f766e; padding: 7px 11px; border-radius: 7px; text-decoration: none; font-size: 12px; font-weight: 600;">
-                                ❤️ Screen CVD
+                                🔬 Retinal AI Screen
                             </a>
 
                             <a href="${pageContext.request.contextPath}/PatientServlet?action=edit&id=<%= patient.getId() %>"

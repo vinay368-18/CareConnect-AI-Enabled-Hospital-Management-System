@@ -1,26 +1,40 @@
 """
-CVD & Retinal Multi-Task AI REST API Service
-Integrates PyTorch Deep Learning with Hospital Management System (HMS)
+CareConnect Retinal AI REST API Microservice
+============================================
+FastAPI service exposing PyTorch Multi-Task Retinal Screening Model (Experiment B).
+Endpoints:
+- GET  /health          Service health, model loading status, version metadata
+- POST /predict         Multi-task screening on uploaded retinal image (multipart/form-data)
+- POST /predict-base64  Multi-task screening on base64 encoded image
+- POST /segment         Optional Residual U-Net retinal vessel segmentation
 """
 
-import io
 import base64
-import os
+import io
+import logging
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Any, Dict, Optional
 
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Response
+from fastapi import FastAPI, File, UploadFile, HTTPException, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 
 from inference import RetinalPredictor
-from vessel_segmentation import VesselSegmenter
+
+# Optional vessel segmentation module
+try:
+    from vessel_segmentation import VesselSegmenter
+except ImportError:
+    VesselSegmenter = None
+
+logger = logging.getLogger("cvd-api")
+logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(
-    title="CareConnect CVD & Retinal AI Microservice",
-    description="Cardiovascular Disease, Hypertension & Diabetic Retinopathy Risk Screening API",
-    version="1.0.0"
+    title="CareConnect Retinal AI Microservice",
+    description="Multi-Task Retinal Image Screening API (Vascular Disease, Hypertension, Diabetic Retinopathy)",
+    version="2.0.0-experiment_b"
 )
 
 app.add_middleware(
@@ -31,164 +45,250 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global Predictor instance
+# Global model instances
 PREDICTOR: Optional[RetinalPredictor] = None
-VESSEL: Optional[VesselSegmenter] = None
+VESSEL: Optional[Any] = None
+MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024  # 25 MB
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png"}
+
 
 @app.on_event("startup")
 def startup_event():
     global PREDICTOR, VESSEL
-    print("[CVD API] Initializing RetinalPredictor PyTorch model...")
-    PREDICTOR = RetinalPredictor()
-    print("[CVD API] PyTorch model loaded successfully on CPU.")
+    logger.info("[CVD API] Initializing CareConnect Retinal AI microservice...")
     try:
-        VESSEL = VesselSegmenter()
-        print("[CVD API] Residual U-Net vessel segmentation model loaded.")
-    except Exception as e:  # the rest of the API keeps working without it
-        VESSEL = None
-        print(f"[CVD API] Vessel segmentation disabled: {e}")
+        PREDICTOR = RetinalPredictor()
+        logger.info("[CVD API] PyTorch model loaded successfully on CPU.")
+    except Exception as e:
+        logger.error(f"[CVD API] Failed to load PyTorch model: {e}")
+        PREDICTOR = None
+
+    if VesselSegmenter is not None:
+        try:
+            VESSEL = VesselSegmenter()
+            logger.info("[CVD API] Residual U-Net vessel segmentation model loaded.")
+        except Exception as e:
+            VESSEL = None
+            logger.warning(f"[CVD API] Vessel segmentation disabled: {e}")
+
 
 @app.get("/")
 def root():
     return {
-        "service": "CareConnect AI CVD & Retinal Analysis Service",
+        "service": "CareConnect Retinal AI Screening Service",
+        "version": "2.0.0-experiment_b",
         "status": "online",
-        "model": "MultiTask EfficientNet-B0",
-        "tasks": ["Cardiovascular Disease (CVD)", "Systemic Hypertension", "Diabetic Retinopathy (ICDR)"]
+        "model": "MultiTask EfficientNet-B0 (Experiment B)",
+        "tasks": ["vascular_disease", "systemic_hypertension", "dr_grade"],
+        "clinical_safety_notice": "Experimental research screening only. Not a medical diagnosis."
     }
+
 
 @app.get("/health")
 def health():
     return {
-        "status": "healthy",
+        "status": "healthy" if PREDICTOR is not None else "degraded",
         "model_loaded": PREDICTOR is not None,
-        "vessel_model_loaded": VESSEL is not None
+        "model_version": "2.0.0-experiment_b",
+        "architecture": "CareConnectMultiTaskNet (EfficientNet-B0)",
+        "device": "cpu",
+        "vessel_model_loaded": VESSEL is not None,
+        "tasks": ["vascular_disease", "systemic_hypertension", "dr_grade"]
     }
 
-def compute_overall_assessment(results: Dict[str, Any]) -> Dict[str, str]:
-    p_cvd = results.get("cvd_predicted_probability", 0.0)
-    p_ht = results.get("hypertension_predicted_probability", 0.0)
-    pred_cvd = results.get("cvd_prediction", "Negative")
-    pred_ht = results.get("hypertension_prediction", "Negative")
-    dr_grade = results.get("dr_predicted_grade", "No DR")
 
-    if pred_cvd == "Positive" and p_cvd >= 0.60:
-        risk_level = "High Risk"
-        recommendation = "Immediate cardiovascular assessment recommended. Schedule ECG, lipid profile, and comprehensive cardiology consult."
-    elif pred_cvd == "Positive" or (pred_ht == "Positive" and p_ht >= 0.55):
-        risk_level = "Moderate Risk"
-        recommendation = "Elevated cardiovascular / hypertension markers detected. Recommend routine blood pressure monitoring and preventive lifestyle modifications."
-    elif dr_grade in ["Moderate", "Severe", "Proliferative"]:
-        risk_level = "Moderate Risk"
-        recommendation = "Signs of Diabetic Retinopathy detected. Urgently schedule a dilated fundus eye exam with an ophthalmologist."
+def compute_clinical_assessment(results: Dict[str, Any]) -> Dict[str, str]:
+    """
+    Produce responsible clinical messaging adhering strictly to research boundaries.
+    Never invents unvalidated diagnostic risk categories.
+    """
+    dr_grade = results.get("dr_predicted_grade", "No DR")
+    p_vd = results.get("cvd_predicted_probability", 0.0)
+
+    # Risk level phrasing maintains non-diagnostic, assistive framing
+    risk_level = "Experimental Screening - Requires Clinical Review"
+
+    recommendation = (
+        "Experimental AI research output. Complete comprehensive cardiovascular risk assessment "
+        "(blood pressure, fasting lipid panel, 12-lead ECG) by an attending physician is mandatory. "
+    )
+    if dr_grade in ["Moderate", "Severe", "Proliferative"]:
+        recommendation += f"Urgent ophthalmology referral recommended for evaluation of retinal {dr_grade} Diabetic Retinopathy."
     else:
-        risk_level = "Low Risk"
-        recommendation = "Retinal markers within normal parameters. Continue annual preventive health check-ups."
+        recommendation += "Routine comprehensive clinical examination recommended."
 
     return {
         "risk_level": risk_level,
         "recommendation": recommendation
     }
 
+
+def validate_image_bytes(content: bytes, filename: Optional[str] = None) -> Image.Image:
+    """Validate file size, extension, and decodability safely."""
+    if not content or len(content) == 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uploaded file is empty.")
+
+    if len(content) > MAX_FILE_SIZE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Uploaded file exceeds 25 MB limit (received {len(content) / (1024*1024):.1f} MB)."
+        )
+
+    if filename:
+        suffix = Path(filename).suffix.lower()
+        if suffix not in ALLOWED_EXTENSIONS:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid file type '{suffix}'. Allowed formats: JPG, JPEG, PNG."
+            )
+
+    try:
+        image = Image.open(io.BytesIO(content))
+        image.verify()  # Fast integrity check
+        # Reopen for actual processing (verify closes the file handle)
+        image = Image.open(io.BytesIO(content)).convert("RGB")
+    except (UnidentifiedImageError, ValueError, OSError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The uploaded file is not a valid, uncorrupted image."
+        )
+
+    w, h = image.size
+    if w < 64 or h < 64:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Image dimensions ({w}x{h}) are too small for retinal analysis (minimum 64x64)."
+        )
+
+    return image
+
+
 @app.post("/predict")
 async def predict_image(file: UploadFile = File(...)):
-    if not PREDICTOR:
-        raise HTTPException(status_code=503, detail="AI Model not ready")
+    """
+    Main prediction endpoint accepting multipart/form-data retinal fundus image.
+    Never persists uploaded images permanently to disk.
+    """
+    if PREDICTOR is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="AI Model service is temporarily unavailable or still initializing."
+        )
 
     try:
         content = await file.read()
-        image = Image.open(io.BytesIO(content)).convert("RGB")
+        image = validate_image_bytes(content, file.filename)
+        results = PREDICTOR.predict(image)
+        assessment = compute_clinical_assessment(results)
+
+        return {
+            "status": "success",
+            "model_version": "2.0.0-experiment_b",
+            "cvd_prediction": results["cvd_prediction"],
+            "cvd_probability": results["cvd_predicted_probability"],
+            "cvd_threshold": results["cvd_threshold"],
+            "hypertension_prediction": results["hypertension_prediction"],
+            "hypertension_probability": results["hypertension_predicted_probability"],
+            "hypertension_threshold": results["hypertension_threshold"],
+            "dr_grade": results["dr_predicted_grade"],
+            "dr_confidence": results["dr_confidence"],
+            "dr_probabilities": {k: round(v, 4) for k, v in results["dr_probabilities"].items()},
+            "risk_level": assessment["risk_level"],
+            "recommendation": assessment["recommendation"],
+            "reliability_badge": results.get("cvd_reliability_badge", ""),
+            "clinical_caveats": results.get("clinical_caveats", ""),
+            "experimental_flag": True,
+        }
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid image file: {str(e)}")
+        logger.error(f"Inference error during /predict: {e}", exc_info=False)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred during image tensor preprocessing or inference."
+        )
 
-    results = PREDICTOR.predict(image)
-    assessment = compute_overall_assessment(results)
-
-    return {
-        "status": "success",
-        "cvd_prediction": results["cvd_prediction"],
-        "cvd_probability": round(float(results["cvd_predicted_probability"]), 4),
-        "cvd_threshold": results["cvd_threshold"],
-        "hypertension_prediction": results["hypertension_prediction"],
-        "hypertension_probability": round(float(results["hypertension_predicted_probability"]), 4),
-        "hypertension_threshold": results["hypertension_threshold"],
-        "dr_grade": results["dr_predicted_grade"],
-        "dr_confidence": round(float(results["dr_confidence"]), 4),
-        "dr_probabilities": {k: round(v, 4) for k, v in results["dr_probabilities"].items()},
-        "risk_level": assessment["risk_level"],
-        "recommendation": assessment["recommendation"],
-        "reliability_badge": results.get("cvd_reliability_badge", "")
-    }
 
 class Base64Payload(BaseModel):
     image_base64: str
 
+
 @app.post("/predict-base64")
 def predict_base64(payload: Base64Payload):
-    if not PREDICTOR:
-        raise HTTPException(status_code=503, detail="AI Model not ready")
+    """Prediction endpoint accepting base64 encoded image strings."""
+    if PREDICTOR is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="AI Model service is temporarily unavailable."
+        )
 
     try:
         raw_b64 = payload.image_base64
         if "," in raw_b64:
             raw_b64 = raw_b64.split(",", 1)[1]
         decoded = base64.b64decode(raw_b64)
-        image = Image.open(io.BytesIO(decoded)).convert("RGB")
+        image = validate_image_bytes(decoded)
+        results = PREDICTOR.predict(image)
+        assessment = compute_clinical_assessment(results)
+
+        return {
+            "status": "success",
+            "model_version": "2.0.0-experiment_b",
+            "cvd_prediction": results["cvd_prediction"],
+            "cvd_probability": results["cvd_predicted_probability"],
+            "cvd_threshold": results["cvd_threshold"],
+            "hypertension_prediction": results["hypertension_prediction"],
+            "hypertension_probability": results["hypertension_predicted_probability"],
+            "hypertension_threshold": results["hypertension_threshold"],
+            "dr_grade": results["dr_predicted_grade"],
+            "dr_confidence": results["dr_confidence"],
+            "dr_probabilities": {k: round(v, 4) for k, v in results["dr_probabilities"].items()},
+            "risk_level": assessment["risk_level"],
+            "recommendation": assessment["recommendation"],
+            "reliability_badge": results.get("cvd_reliability_badge", ""),
+            "clinical_caveats": results.get("clinical_caveats", ""),
+            "experimental_flag": True,
+        }
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid base64 image: {str(e)}")
+        logger.error(f"Inference error during /predict-base64: {e}", exc_info=False)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred processing base64 image data."
+        )
 
-    results = PREDICTOR.predict(image)
-    assessment = compute_overall_assessment(results)
-
-    return {
-        "status": "success",
-        "cvd_prediction": results["cvd_prediction"],
-        "cvd_probability": round(float(results["cvd_predicted_probability"]), 4),
-        "cvd_threshold": results["cvd_threshold"],
-        "hypertension_prediction": results["hypertension_prediction"],
-        "hypertension_probability": round(float(results["hypertension_predicted_probability"]), 4),
-        "hypertension_threshold": results["hypertension_threshold"],
-        "dr_grade": results["dr_predicted_grade"],
-        "dr_confidence": round(float(results["dr_confidence"]), 4),
-        "dr_probabilities": {k: round(v, 4) for k, v in results["dr_probabilities"].items()},
-        "risk_level": assessment["risk_level"],
-        "recommendation": assessment["recommendation"],
-        "reliability_badge": results.get("cvd_reliability_badge", "")
-    }
 
 @app.post("/segment")
 def segment_vessels(file: UploadFile = File(...)):
-    """Residual U-Net vessel segmentation. Returns a PNG overlay; vessel density is in the X-Vessel-Density header."""
+    """Optional Residual U-Net vessel segmentation endpoint."""
     if VESSEL is None:
-        raise HTTPException(status_code=503, detail="Vessel segmentation model not loaded")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Vessel segmentation model not loaded."
+        )
     try:
-        image = Image.open(io.BytesIO(file.file.read())).convert("RGB")
+        content = file.file.read()
+        image = validate_image_bytes(content, file.filename)
+        result = VESSEL.segment(image)
+        return Response(
+            content=result["overlay_png"],
+            media_type="image/png",
+            headers={
+                "X-Vessel-Density": f"{result['vessel_density']:.2f}",
+                "X-Vessel-Image-Size": f"{result['size'][0]}x{result['size'][1]}",
+                "Access-Control-Expose-Headers": "X-Vessel-Density, X-Vessel-Image-Size",
+            },
+        )
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid image file: {str(e)}")
+        logger.error(f"Segmentation error: {e}", exc_info=False)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to segment retinal vessel overlay."
+        )
 
-    result = VESSEL.segment(image)
-    return Response(
-        content=result["overlay_png"],
-        media_type="image/png",
-        headers={
-            "X-Vessel-Density": f"{result['vessel_density']:.2f}",
-            "X-Vessel-Image-Size": f"{result['size'][0]}x{result['size'][1]}",
-            "Access-Control-Expose-Headers": "X-Vessel-Density, X-Vessel-Image-Size",
-        },
-    )
-
-@app.get("/sample-images")
-def get_sample_images():
-    """List demo retinal fundus images available on the system."""
-    sample_dir = Path(r"c:\Users\vinay\CVD Project\BRSET_v1.0.2-20261001T140733Z-1-006\BRSET_v1.0.2\physionet.org\files\brazilian-ophthalmological\1.0.2\fundus_photos")
-    samples = []
-    if sample_dir.exists():
-        for f in list(sample_dir.glob("*.jpg"))[:6]:
-            samples.append({
-                "filename": f.name,
-                "path": str(f)
-            })
-    return {"samples": samples}
 
 if __name__ == "__main__":
     import uvicorn

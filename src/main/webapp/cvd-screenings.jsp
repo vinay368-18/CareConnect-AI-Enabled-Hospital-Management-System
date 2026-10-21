@@ -336,14 +336,18 @@
             <div class="title">Total AI Screenings</div>
             <div class="value"><%= total %></div>
         </div>
-        <div class="metric-card alert">
-            <div class="title">High Cardiovascular Risk</div>
-            <div class="value"><%= highRisk %></div>
+        <div class="metric-card">
+            <div class="title">Elevated CVD Markers (Exp)</div>
+            <div class="value" style="color: #4f46e5;"><%= highRisk %></div>
         </div>
         <div class="metric-card success">
-            <div class="title">Low / Moderate Risk</div>
+            <div class="title">Unremarkable CVD Markers</div>
             <div class="value"><%= normalCount %></div>
         </div>
+    </div>
+
+    <div style="background: #f0fdfa; border: 1px solid #99f6e4; color: #115e59; padding: 12px 18px; border-radius: 8px; margin-bottom: 20px; font-size: 13px;">
+        🔬 <strong>Clinical Research Pre-Screening:</strong> Vascular disease predictions are assistive research markers (Held-Out Test ROC-AUC: 0.5202). Diabetic Retinopathy classification is an ocular finding (Test Accuracy: 76.99%). This prototype does not replace standard physician examinations, blood pressure measurement, or ECG testing.
     </div>
 
     <!-- TABLE OF SCREENINGS -->
@@ -355,10 +359,10 @@
                     <th>Date & Time</th>
                     <th>Patient</th>
                     <th>Doctor</th>
-                    <th>CVD Status</th>
-                    <th>Hypertension</th>
+                    <th>Vascular Disease (Exp)</th>
+                    <th>Hypertension (Exp)</th>
                     <th>Diabetic Retinopathy</th>
-                    <th>Overall Risk</th>
+                    <th>Review Status</th>
                     <th>Actions</th>
                 </tr>
             </thead>

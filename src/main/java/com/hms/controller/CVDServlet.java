@@ -7,25 +7,28 @@ import com.hms.dao.PatientDAO;
 import com.hms.model.CVDScreening;
 import com.hms.model.Doctor;
 import com.hms.model.Patient;
+import com.hms.model.User;
 import com.hms.service.CVDClient;
+
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.Part;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @WebServlet("/CVDServlet")
@@ -36,10 +39,47 @@ import java.util.UUID;
 )
 public class CVDServlet extends HttpServlet {
 
+    private static final long serialVersionUID = 1L;
+
+    private static final Set<String> ALLOWED_EXTENSIONS = new HashSet<>(
+            Arrays.asList(".jpg", ".jpeg", ".png")
+    );
+
     private final CVDScreeningDAO cvdDAO = new CVDScreeningDAO();
     private final PatientDAO patientDAO = new PatientDAO();
     private final DoctorDAO doctorDAO = new DoctorDAO();
     private final CVDClient cvdClient = new CVDClient();
+
+    // ==========================================
+    // AUTHENTICATION & AUTHORIZATION HELPERS
+    // ==========================================
+
+    private User getLoggedInUser(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session == null) {
+            return null;
+        }
+        Object userObj = session.getAttribute("user");
+        if (!(userObj instanceof User)) {
+            return null;
+        }
+        return (User) userObj;
+    }
+
+    private boolean checkAuthorized(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        User user = getLoggedInUser(request);
+        if (user == null) {
+            response.sendRedirect(request.getContextPath() + "/login.jsp?error=unauthorized");
+            return false;
+        }
+        String role = user.getRole();
+        if (!"ADMIN".equalsIgnoreCase(role) && !"DOCTOR".equalsIgnoreCase(role) && !"RECEPTIONIST".equalsIgnoreCase(role)) {
+            response.sendRedirect(request.getContextPath() + "/dashboard.jsp?error=forbidden");
+            return false;
+        }
+        return true;
+    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -47,6 +87,10 @@ public class CVDServlet extends HttpServlet {
 
         request.setCharacterEncoding("UTF-8");
         response.setCharacterEncoding("UTF-8");
+
+        if (!checkAuthorized(request, response)) {
+            return;
+        }
 
         String action = request.getParameter("action");
         if (action == null || action.trim().isEmpty()) {
@@ -76,6 +120,10 @@ public class CVDServlet extends HttpServlet {
 
         request.setCharacterEncoding("UTF-8");
         response.setCharacterEncoding("UTF-8");
+
+        if (!checkAuthorized(request, response)) {
+            return;
+        }
 
         String action = request.getParameter("action");
         if ("analyze".equalsIgnoreCase(action)) {
@@ -111,8 +159,15 @@ public class CVDServlet extends HttpServlet {
         request.setAttribute("isAiOnline", isAiOnline);
 
         String preselectedPatientId = request.getParameter("patientId");
-        if (preselectedPatientId != null) {
-            request.setAttribute("preselectedPatientId", preselectedPatientId);
+        if (preselectedPatientId != null && !preselectedPatientId.trim().isEmpty()) {
+            try {
+                int pid = Integer.parseInt(preselectedPatientId.trim());
+                Patient p = patientDAO.getPatientById(pid);
+                if (p != null) {
+                    request.setAttribute("preselectedPatientId", String.valueOf(pid));
+                }
+            } catch (NumberFormatException ignored) {
+            }
         }
 
         request.getRequestDispatcher("/new-screening.jsp").forward(request, response);
@@ -141,6 +196,12 @@ public class CVDServlet extends HttpServlet {
     private void deleteScreening(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
 
+        User user = getLoggedInUser(request);
+        if (user == null || (!"ADMIN".equalsIgnoreCase(user.getRole()) && !"DOCTOR".equalsIgnoreCase(user.getRole()))) {
+            response.sendRedirect(request.getContextPath() + "/CVDServlet?action=list&error=unauthorized_delete");
+            return;
+        }
+
         try {
             int id = Integer.parseInt(request.getParameter("id"));
             cvdDAO.deleteScreening(id);
@@ -151,7 +212,7 @@ public class CVDServlet extends HttpServlet {
     }
 
     /**
-     * Residual U-Net vessel segmentation. Optional: any failure is logged and the screening is kept as it is.
+     * Residual U-Net vessel segmentation. Optional: any failure is logged and the screening is kept.
      */
     private void runVesselSegmentation(int screeningId, byte[] imageBytes, String savedFilename) {
         try {
@@ -184,15 +245,34 @@ public class CVDServlet extends HttpServlet {
     private void analyzeFundusScan(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
+        User currentUser = getLoggedInUser(request);
+
         try {
-            int patientId = Integer.parseInt(request.getParameter("patientId"));
+            String patientIdStr = request.getParameter("patientId");
+            if (patientIdStr == null || patientIdStr.trim().isEmpty()) {
+                response.sendRedirect(request.getContextPath() + "/CVDServlet?action=new&error=invalid_patient");
+                return;
+            }
+            int patientId = Integer.parseInt(patientIdStr.trim());
+
+            // Authorization & Patient Existence check
+            Patient targetPatient = patientDAO.getPatientById(patientId);
+            if (targetPatient == null) {
+                response.sendRedirect(request.getContextPath() + "/CVDServlet?action=new&error=invalid_patient");
+                return;
+            }
+
             String doctorIdStr = request.getParameter("doctorId");
-            Integer doctorId = (doctorIdStr != null && !doctorIdStr.trim().isEmpty())
-                    ? Integer.parseInt(doctorIdStr) : null;
+            Integer doctorId = null;
+            if (doctorIdStr != null && !doctorIdStr.trim().isEmpty()) {
+                doctorId = Integer.parseInt(doctorIdStr.trim());
+            } else if (currentUser != null && "DOCTOR".equalsIgnoreCase(currentUser.getRole()) && currentUser.getDoctorId() > 0) {
+                doctorId = currentUser.getDoctorId();
+            }
 
             String appointmentIdStr = request.getParameter("appointmentId");
             Integer appointmentId = (appointmentIdStr != null && !appointmentIdStr.trim().isEmpty())
-                    ? Integer.parseInt(appointmentIdStr) : null;
+                    ? Integer.parseInt(appointmentIdStr.trim()) : null;
 
             String notes = request.getParameter("notes");
             String sampleImage = request.getParameter("sampleImage");
@@ -205,12 +285,18 @@ public class CVDServlet extends HttpServlet {
             if (filePart != null && filePart.getSize() > 0 && filePart.getSubmittedFileName() != null
                     && !filePart.getSubmittedFileName().trim().isEmpty()) {
 
-                String originalFileName = Paths.get(filePart.getSubmittedFileName()).getFileName().toString();
+                String rawFileName = Paths.get(filePart.getSubmittedFileName()).getFileName().toString();
                 String ext = ".jpg";
-                if (originalFileName.contains(".")) {
-                    ext = originalFileName.substring(originalFileName.lastIndexOf("."));
+                if (rawFileName.contains(".")) {
+                    ext = rawFileName.substring(rawFileName.lastIndexOf(".")).toLowerCase();
                 }
 
+                if (!ALLOWED_EXTENSIONS.contains(ext)) {
+                    response.sendRedirect(request.getContextPath() + "/CVDServlet?action=new&patientId=" + patientId + "&error=invalid_file_type");
+                    return;
+                }
+
+                // Sanitize and randomize file destination
                 savedFilename = "fundus_" + UUID.randomUUID().toString().substring(0, 8) + "_" + System.currentTimeMillis() + ext;
 
                 // Save to webapp uploads folder
@@ -231,17 +317,18 @@ public class CVDServlet extends HttpServlet {
                 imageBytes = Files.readAllBytes(destinationFile.toPath());
 
             } else if (sampleImage != null && !sampleImage.trim().isEmpty()) {
-                // Use bundled sample image
-                String sampleRealPath = getServletContext().getRealPath("/uploads/fundus/samples/" + sampleImage);
+                // Sanitize sample image input against directory traversal
+                String cleanSample = Paths.get(sampleImage).getFileName().toString();
+                String sampleRealPath = getServletContext().getRealPath("/uploads/fundus/samples/" + cleanSample);
                 File sampleFile = (sampleRealPath != null) ? new File(sampleRealPath) : null;
 
                 if (sampleFile == null || !sampleFile.exists()) {
-                    sampleFile = new File("src/main/webapp/uploads/fundus/samples/" + sampleImage);
+                    sampleFile = new File("src/main/webapp/uploads/fundus/samples/" + cleanSample);
                 }
 
                 if (sampleFile.exists()) {
                     imageBytes = Files.readAllBytes(sampleFile.toPath());
-                    savedFilename = "samples/" + sampleImage;
+                    savedFilename = "samples/" + cleanSample;
                 }
             }
 
@@ -250,16 +337,25 @@ public class CVDServlet extends HttpServlet {
                 return;
             }
 
-            // Check if Python PyTorch AI microservice is reachable
+            // Check if Python AI microservice is reachable
             if (!cvdClient.isServiceAvailable()) {
                 response.sendRedirect(request.getContextPath() + "/CVDServlet?action=new&patientId=" + patientId + "&error=ai_offline");
                 return;
             }
 
-            // Call Python PyTorch AI Microservice
-            CVDScreening screeningResult = cvdClient.analyzeImage(imageBytes, savedFilename != null ? savedFilename : "scan.jpg");
+            // Call Python AI Microservice
+            CVDScreening screeningResult;
+            try {
+                screeningResult = cvdClient.analyzeImage(imageBytes, savedFilename != null ? savedFilename : "scan.jpg");
+            } catch (IOException e) {
+                if (e.getMessage() != null && e.getMessage().contains("HTTP 400")) {
+                    response.sendRedirect(request.getContextPath() + "/CVDServlet?action=new&patientId=" + patientId + "&error=corrupt_image");
+                    return;
+                }
+                throw e;
+            }
 
-            // Fill metadata
+            // Fill metadata and author links
             screeningResult.setPatientId(patientId);
             screeningResult.setDoctorId(doctorId);
             screeningResult.setAppointmentId(appointmentId);

@@ -10,7 +10,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CareConnect | AI Diagnostic Report</title>
+    <title>CareConnect | AI Retinal & Multi-Task Screening Report</title>
 
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/style.css">
 
@@ -137,7 +137,7 @@
         /* Scan + Results Layout */
         .diagnostic-section {
             display: grid;
-            grid-template-columns: 560px 1fr;
+            grid-template-columns: 520px 1fr;
             gap: 28px;
             margin-bottom: 28px;
         }
@@ -153,7 +153,7 @@
         .scan-preview-box img {
             width: 100%;
             height: auto;
-            max-height: 560px;
+            max-height: 520px;
             object-fit: contain;
             background: #000;
             border-radius: 8px;
@@ -178,7 +178,7 @@
             background: white;
             border: 1px solid #e2e8f0;
             border-radius: 10px;
-            padding: 16px 20px;
+            padding: 18px 20px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.02);
         }
 
@@ -186,13 +186,20 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .finding-card .title {
             font-size: 14px;
             font-weight: 700;
             color: #1e293b;
+        }
+
+        .finding-note {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 8px;
+            line-height: 1.4;
         }
 
         .progress-bar-bg {
@@ -209,11 +216,11 @@
             transition: width 0.6s ease;
         }
 
-        .bar-cvd { background: linear-gradient(90deg, #f59e0b, #ef4444); }
-        .bar-ht { background: linear-gradient(90deg, #06b6d4, #3b82f6); }
+        .bar-cvd { background: linear-gradient(90deg, #3b82f6, #6366f1); }
+        .bar-ht { background: linear-gradient(90deg, #06b6d4, #0284c7); }
         .bar-dr { background: linear-gradient(90deg, #10b981, #0f766e); }
 
-        /* Overall Assessment Banner */
+        /* Assessment Banner */
         .assessment-banner {
             border-radius: 12px;
             padding: 20px 24px;
@@ -221,24 +228,9 @@
             display: flex;
             gap: 18px;
             align-items: flex-start;
-        }
-
-        .banner-high {
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            color: #991b1b;
-        }
-
-        .banner-mod {
-            background: #fffbeb;
-            border: 1px solid #fde68a;
-            color: #92400e;
-        }
-
-        .banner-low {
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
-            color: #166534;
+            background: #f0fdfa;
+            border: 1px solid #99f6e4;
+            color: #115e59;
         }
 
         .assessment-banner .icon {
@@ -248,25 +240,31 @@
 
         .assessment-banner h3 {
             margin: 0 0 6px 0;
-            font-size: 17px;
+            font-size: 16.5px;
+            color: #0f766e;
         }
 
         .assessment-banner p {
             margin: 0;
             font-size: 13.5px;
             line-height: 1.5;
+            color: #134e4a;
         }
 
         /* Disclaimer */
         .disclaimer-box {
             background: #f8fafc;
-            border-left: 4px solid #94a3b8;
-            padding: 12px 18px;
+            border-left: 4px solid #0f766e;
+            padding: 16px 20px;
             font-size: 12px;
-            color: #64748b;
-            line-height: 1.5;
+            color: #475569;
+            line-height: 1.55;
             margin-top: 24px;
             border-radius: 0 8px 8px 0;
+        }
+
+        .disclaimer-box strong {
+            color: #0f172a;
         }
 
         /* Badges */
@@ -278,8 +276,8 @@
             font-weight: 700;
         }
 
-        .badge-positive { background: #fee2e2; color: #b91c1c; }
-        .badge-negative { background: #dcfce7; color: #15803d; }
+        .badge-research { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+        .badge-dr { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
 
         @media print {
             body { padding: 0; background: white; }
@@ -294,15 +292,6 @@
 <%
     CVDScreening s = (CVDScreening) request.getAttribute("screening");
     if (s != null) {
-        String bannerClass = "banner-low";
-        String bannerIcon = "✅";
-        if ("High Risk".equalsIgnoreCase(s.getRiskLevel())) {
-            bannerClass = "banner-high";
-            bannerIcon = "⚠️";
-        } else if ("Moderate Risk".equalsIgnoreCase(s.getRiskLevel())) {
-            bannerClass = "banner-mod";
-            bannerIcon = "⚡";
-        }
 %>
 
 <div class="report-container">
@@ -325,12 +314,12 @@
     <div class="report-header">
         <div class="hospital-brand">
             <h1><span>🏥</span> CareConnect Hospital</h1>
-            <p>Department of Preventive Cardiology & AI Diagnostics</p>
+            <p>Department of Preventive Medicine & AI Clinical Research</p>
         </div>
         <div class="report-meta">
             <div>Report ID: <strong>#CVD-<%= s.getScreeningId() %></strong></div>
             <div>Date: <%= s.getScreeningDate() != null ? s.getScreeningDate().toString().substring(0, 16) : "Recent" %></div>
-            <div style="color: #0f766e; font-weight: 600; margin-top: 4px;">PyTorch Multi-Task Model v1.0</div>
+            <div style="color: #0f766e; font-weight: 600; margin-top: 4px;">MultiTask EfficientNet-B0 (v2.0.0-expB)</div>
         </div>
     </div>
 
@@ -344,27 +333,27 @@
                 <div class="val"><%= s.getPatientName() %></div>
             </div>
             <div class="info-item">
-                <div class="lbl">Patient ID & Age</div>
+                <div class="lbl">Patient ID & Demographics</div>
                 <div class="val">#<%= s.getPatientId() %> | <%= s.getPatientAge() %> yrs, <%= s.getPatientGender() %></div>
             </div>
             <div class="info-item">
-                <div class="lbl">Phone / Contact</div>
+                <div class="lbl">Contact Phone</div>
                 <div class="val"><%= s.getPatientPhone() != null ? s.getPatientPhone() : "N/A" %></div>
             </div>
             <div class="info-item">
-                <div class="lbl">Assigned Doctor</div>
-                <div class="val"><%= s.getDoctorName() != null ? s.getDoctorName() : "Cardiology Team" %></div>
+                <div class="lbl">Reviewing Clinician</div>
+                <div class="val"><%= s.getDoctorName() != null ? s.getDoctorName() : "Attending Physician" %></div>
             </div>
         </div>
 
         <!-- Overall Assessment Banner -->
-        <div class="assessment-banner <%= bannerClass %>">
-            <div class="icon"><%= bannerIcon %></div>
+        <div class="assessment-banner">
+            <div class="icon">🔬</div>
             <div>
-                <h3>Overall Assessment: <%= s.getRiskLevel() %></h3>
-                <p><strong>Clinical Recommendation:</strong> <%= s.getRecommendation() %></p>
+                <h3><%= s.getRiskLevel() != null ? s.getRiskLevel() : "Experimental Screening - Requires Clinical Review" %></h3>
+                <p><strong>Clinical Direction:</strong> <%= s.getRecommendation() != null ? s.getRecommendation() : "Experimental AI research output. Complete comprehensive cardiovascular risk assessment (BP, fasting blood sugar, lipid profile, ECG) by an attending physician is required." %></p>
                 <% if (s.getNotes() != null && !s.getNotes().trim().isEmpty()) { %>
-                    <p style="margin-top: 6px; font-style: italic;">Patient Notes: <%= s.getNotes() %></p>
+                    <p style="margin-top: 6px; font-style: italic; color: #334155;">Clinician Notes: <%= s.getNotes() %></p>
                 <% } %>
             </div>
         </div>
@@ -378,7 +367,7 @@
                     <img src="${pageContext.request.contextPath}/<%= s.getImagePath() != null ? s.getImagePath() : "uploads/fundus/samples/img00330.jpg" %>"
                          alt="Retinal Fundus Scan"
                          onerror="this.src='${pageContext.request.contextPath}/uploads/fundus/samples/img00330.jpg';">
-                    <div class="caption">Retinal fundus photograph (full uploaded image; the classifier analyses a 224x224 resized copy)</div>
+                    <div class="caption">Retinal fundus photograph (Analyzed at 224x224 input resolution)</div>
                 </div>
 
                 <% if (s.getVesselOverlayPath() != null && !s.getVesselOverlayPath().isEmpty()) { %>
@@ -388,7 +377,7 @@
                          onerror="this.parentNode.style.display='none';">
                     <div class="caption">
                         Vessel segmentation (Residual U-Net)<%= s.getVesselDensity() != null ? " &middot; vessel density " + String.format("%.1f", s.getVesselDensity()) + "% of retinal area" : "" %><br>
-                        Research output &ndash; not clinically validated
+                        Research visualization &ndash; not a diagnostic claim
                     </div>
                 </div>
                 <% } %>
@@ -397,54 +386,63 @@
             <!-- Deep Learning Prediction Scores -->
             <div class="risk-cards-col">
 
-                <!-- 1. CVD Risk -->
+                <!-- 1. CVD Risk (Experimental Indicator) -->
                 <div class="finding-card">
                     <div class="head">
-                        <span class="title">Cardiovascular Disease (CVD) Risk</span>
-                        <span class="badge <%= "Positive".equalsIgnoreCase(s.getCvdPrediction()) ? "badge-positive" : "badge-negative" %>">
-                            <%= s.getCvdPrediction() %>
+                        <span class="title">Vascular Disease (CVD) &mdash; Experimental Marker</span>
+                        <span class="badge badge-research">
+                            Research Score: <%= String.format("%.1f", s.getCvdProbability() * 100) %>%
                         </span>
                     </div>
                     <div style="display:flex; justify-content:space-between; font-size:12.5px; color:#64748b;">
-                        <span>Estimated Risk Probability</span>
-                        <strong><%= s.getCvdPercent() %>%</strong>
+                        <span>Validation Threshold: <strong>49.96%</strong></span>
+                        <span>Estimated Probability: <strong><%= String.format("%.2f", s.getCvdProbability()) %></strong></span>
                     </div>
                     <div class="progress-bar-bg">
-                        <div class="progress-bar-fill bar-cvd" style="width: <%= s.getCvdPercent() %>%;"></div>
+                        <div class="progress-bar-fill bar-cvd" style="width: <%= (int)Math.min(100, Math.max(0, s.getCvdProbability() * 100)) %>%;"></div>
+                    </div>
+                    <div class="finding-note">
+                        ⚠️ <strong>Research Notice:</strong> Retinal images alone exhibit near-chance discrimination for systemic vascular disease (Held-Out Test ROC-AUC: 0.5202; 95% CI: 0.3936–0.6416). This score is an experimental indicator and does <em>not</em> establish a diagnosis of cardiovascular disease.
                     </div>
                 </div>
 
-                <!-- 2. Systemic Hypertension -->
+                <!-- 2. Systemic Hypertension (Experimental Marker) -->
                 <div class="finding-card">
                     <div class="head">
-                        <span class="title">Systemic Hypertension (HT)</span>
-                        <span class="badge <%= "Positive".equalsIgnoreCase(s.getHypertensionPrediction()) ? "badge-positive" : "badge-negative" %>">
-                            <%= s.getHypertensionPrediction() %>
+                        <span class="title">Systemic Hypertension &mdash; Retinopathy Marker</span>
+                        <span class="badge badge-research">
+                            Research Score: <%= String.format("%.1f", s.getHypertensionProbability() * 100) %>%
                         </span>
                     </div>
                     <div style="display:flex; justify-content:space-between; font-size:12.5px; color:#64748b;">
-                        <span>Hypertensive Retinopathy Probability</span>
-                        <strong><%= s.getHypertensionPercent() %>%</strong>
+                        <span>Validation Threshold: <strong>42.88%</strong></span>
+                        <span>Estimated Probability: <strong><%= String.format("%.2f", s.getHypertensionProbability()) %></strong></span>
                     </div>
                     <div class="progress-bar-bg">
-                        <div class="progress-bar-fill bar-ht" style="width: <%= s.getHypertensionPercent() %>%;"></div>
+                        <div class="progress-bar-fill bar-ht" style="width: <%= (int)Math.min(100, Math.max(0, s.getHypertensionProbability() * 100)) %>%;"></div>
+                    </div>
+                    <div class="finding-note">
+                        ℹ️ <strong>Clinical Note:</strong> Hypertensive microvascular marker (Held-Out Test Sensitivity: 77.78%). Formal diagnosis requires standard blood pressure measurement by sphygmomanometry.
                     </div>
                 </div>
 
-                <!-- 3. Diabetic Retinopathy Grade -->
+                <!-- 3. Diabetic Retinopathy Grade (Direct Ocular Finding) -->
                 <div class="finding-card">
                     <div class="head">
-                        <span class="title">Diabetic Retinopathy (ICDR)</span>
-                        <span class="badge" style="background:#e0f2fe; color:#0369a1;">
+                        <span class="title">Diabetic Retinopathy (ICDR) &mdash; Ocular Finding</span>
+                        <span class="badge badge-dr">
                             Grade: <%= s.getDrGrade() %>
                         </span>
                     </div>
                     <div style="display:flex; justify-content:space-between; font-size:12.5px; color:#64748b;">
                         <span>Top Class Confidence</span>
-                        <strong><%= s.getDrPercent() %>%</strong>
+                        <strong><%= String.format("%.1f", s.getDrConfidence() * 100) %>%</strong>
                     </div>
                     <div class="progress-bar-bg">
-                        <div class="progress-bar-fill bar-dr" style="width: <%= s.getDrPercent() %>%;"></div>
+                        <div class="progress-bar-fill bar-dr" style="width: <%= (int)Math.min(100, Math.max(0, s.getDrConfidence() * 100)) %>%;"></div>
+                    </div>
+                    <div class="finding-note">
+                        ✅ <strong>Direct Ocular Pathology:</strong> Multi-class ICDR classification (Held-Out Test Accuracy: 76.99%, Weighted F1: 0.6918). Reflects visible microvascular retinal findings only and does <em>not</em> prove systemic cardiovascular disease status or a diabetes diagnosis.
                     </div>
                 </div>
 
@@ -454,8 +452,8 @@
 
         <!-- Research & Clinical Disclaimer -->
         <div class="disclaimer-box">
-            <strong>Medical Research Prototype Disclaimer:</strong>
-            These findings are generated computationally by an integrated deep learning multi-task architecture (EfficientNet-B0 backbone) trained on retinal fundus benchmarks. The model provides assistive screening markers for cardiovascular and microvascular health. It is intended to assist medical practitioners and does not replace formal clinical examinations, ECG, or lab blood tests.
+            <strong>Mandatory Clinical & Research Safety Notice:</strong><br>
+            This screening output is generated computationally by a multi-task deep neural network (EfficientNet-B0 backbone) trained on retinal fundus benchmarks. It is designed to assist clinical research and pre-screening workflows. Retinal image-only screening does <strong>not</strong> replace comprehensive medical examinations, clinical history, blood pressure measurement, fasting lipid panels, or 12-lead electrocardiography (ECG). Never make therapeutic decisions based solely on this automated output.
         </div>
 
     </div>

@@ -302,6 +302,18 @@
         <div class="alert alert-warning">
             <strong>Missing Retinal Image:</strong> Please select or upload a fundus photograph to perform the analysis.
         </div>
+    <% } else if ("invalid_file_type".equals(error)) { %>
+        <div class="alert alert-error">
+            <strong>Invalid File Type:</strong> Only standard image formats (.jpg, .jpeg, .png) are permitted.
+        </div>
+    <% } else if ("corrupt_image".equals(error)) { %>
+        <div class="alert alert-error">
+            <strong>Corrupted Image:</strong> The uploaded file could not be decoded as a valid, uncorrupted retinal fundus image.
+        </div>
+    <% } else if ("invalid_patient".equals(error)) { %>
+        <div class="alert alert-error">
+            <strong>Invalid Patient:</strong> The selected patient does not exist or could not be found.
+        </div>
     <% } else if ("processing_error".equals(error)) { %>
         <div class="alert alert-error">
             <strong>Processing Error:</strong> An error occurred during image tensor preprocessing or inference. Please try again.
