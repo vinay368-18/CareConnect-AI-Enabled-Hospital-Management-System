@@ -6,6 +6,22 @@
 <%@ page import="com.hms.model.Appointment" %>
 <%@ page import="com.hms.dao.PatientDAO" %>
 <%@ page import="com.hms.dao.AppointmentDAO" %>
+<%@ page import="com.hms.model.User" %>
+<%@ page import="com.hms.util.HtmlUtil" %>
+<%@ page import="com.hms.util.CSRFUtil" %>
+
+<%
+    User u = (session != null) ? (User) session.getAttribute("user") : null;
+    if (u == null) {
+        response.sendRedirect(request.getContextPath() + "/login.jsp?error=unauthorized");
+        return;
+    }
+    if (!"ADMIN".equalsIgnoreCase(u.getRole()) && !"RECEPTIONIST".equalsIgnoreCase(u.getRole())) {
+        response.sendRedirect(request.getContextPath() + "/dashboard.jsp?error=unauthorized");
+        return;
+    }
+    String csrfToken = CSRFUtil.getToken(session);
+%>
 
 <%
     PatientDAO patientDAO = new PatientDAO();
@@ -158,9 +174,8 @@
     <form action="${pageContext.request.contextPath}/BillingServlet"
           method="post">
 
-        <input type="hidden"
-               name="action"
-               value="add">
+        <input type="hidden" name="action" value="add">
+        <input type="hidden" name="csrf_token" value="<%= HtmlUtil.escapeHtml(csrfToken) %>">
 
 
         <!-- Patient -->

@@ -33,12 +33,24 @@ public class LoginServlet extends HttpServlet {
         String username = request.getParameter("username");
         String password = request.getParameter("password");
 
-        User user = userDAO.login(username, password);
+        if (username == null || password == null || username.trim().isEmpty() || password.isEmpty()) {
+            response.sendRedirect(
+                request.getContextPath() + "/login.jsp?error=invalid"
+            );
+            return;
+        }
+
+        User user = userDAO.login(username.trim(), password);
 
         if (user != null) {
+            // Prevent session fixation
+            HttpSession oldSession = request.getSession(false);
+            if (oldSession != null) {
+                oldSession.invalidate();
+            }
+            HttpSession session = request.getSession(true);
 
-            HttpSession session = request.getSession();
-
+            user.setPassword(null); // Never retain password in session
             session.setAttribute("user", user);
             session.setAttribute("username", user.getUsername());
             session.setAttribute("role", user.getRole());
@@ -46,28 +58,14 @@ public class LoginServlet extends HttpServlet {
 
             String role = user.getRole();
 
-            if ("ADMIN".equalsIgnoreCase(role)) {
-
+            if ("ADMIN".equalsIgnoreCase(role) || "RECEPTIONIST".equalsIgnoreCase(role) || "DOCTOR".equalsIgnoreCase(role)) {
                 response.sendRedirect(
                     request.getContextPath() + "/dashboard.jsp"
                 );
-
-            } else if ("RECEPTIONIST".equalsIgnoreCase(role)) {
-
-                response.sendRedirect(
-                    request.getContextPath() + "/dashboard.jsp"
-                );
-
-            } else if ("DOCTOR".equalsIgnoreCase(role)) {
-
-                response.sendRedirect(
-                    request.getContextPath() + "/dashboard.jsp"
-                );
-
             } else {
-
+                session.invalidate();
                 response.sendRedirect(
-                    request.getContextPath() + "/login.jsp?error=invalidrole"
+                    request.getContextPath() + "/login.jsp?error=invalid"
                 );
             }
 

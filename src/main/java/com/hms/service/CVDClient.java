@@ -16,22 +16,71 @@ import java.util.regex.Pattern;
 
 /**
  * Service client communicating with the Python PyTorch CVD Microservice.
+ * Authenticates requests using a pre-shared service key via the X-API-Key header.
  */
 public class CVDClient {
 
     private static final String DEFAULT_API_URL = "http://127.0.0.1:5000";
     private final String baseUrl;
-    private final HttpClient httpClient;
+    private final String apiKey;
+    private volatile HttpClient httpClient;
 
     public CVDClient() {
-        this(DEFAULT_API_URL);
+        this(resolveBaseUrl(), resolveApiKey());
     }
 
     public CVDClient(String baseUrl) {
-        this.baseUrl = baseUrl;
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10))
-                .build();
+        this(baseUrl, resolveApiKey());
+    }
+
+    public CVDClient(String baseUrl, String apiKey) {
+        this.baseUrl = baseUrl != null ? baseUrl : DEFAULT_API_URL;
+        this.apiKey = apiKey != null ? apiKey : "";
+    }
+
+    private HttpClient getClient() {
+        if (httpClient == null) {
+            synchronized (this) {
+                if (httpClient == null) {
+                    httpClient = HttpClient.newBuilder()
+                            .connectTimeout(Duration.ofSeconds(10))
+                            .build();
+                }
+            }
+        }
+        return httpClient;
+    }
+
+    private static String resolveBaseUrl() {
+        String env = System.getenv("HMS_AI_API_URL");
+        if (env != null && !env.trim().isEmpty()) {
+            return env.trim();
+        }
+        String prop = System.getProperty("hms.ai.api.url");
+        if (prop != null && !prop.trim().isEmpty()) {
+            return prop.trim();
+        }
+        return DEFAULT_API_URL;
+    }
+
+    private static String resolveApiKey() {
+        String env = System.getenv("HMS_AI_API_KEY");
+        if (env != null && !env.trim().isEmpty()) {
+            return env.trim();
+        }
+        String prop = System.getProperty("hms.ai.api.key");
+        if (prop != null && !prop.trim().isEmpty()) {
+            return prop.trim();
+        }
+        return "";
+    }
+
+    public String getApiKey() {
+        return apiKey;
+    }
+
+    public String getBaseUrl() {
+        return baseUrl;
     }
 
     /**
@@ -45,7 +94,7 @@ public class CVDClient {
                     .GET()
                     .build();
 
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = getClient().send(request, HttpResponse.BodyHandlers.ofString());
             return response.statusCode() == 200 && response.body().contains("healthy");
         } catch (Exception e) {
             return false;
@@ -59,17 +108,24 @@ public class CVDClient {
         String boundary = "----WebKitFormBoundary" + UUID.randomUUID().toString().replace("-", "");
         byte[] multipartBody = createMultipartBody(boundary, imageBytes, filename);
 
-        HttpRequest request = HttpRequest.newBuilder()
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + "/predict"))
                 .timeout(Duration.ofSeconds(45))
                 .header("Content-Type", "multipart/form-data; boundary=" + boundary)
-                .POST(HttpRequest.BodyPublishers.ofByteArray(multipartBody))
-                .build();
+                .POST(HttpRequest.BodyPublishers.ofByteArray(multipartBody));
 
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (!apiKey.isEmpty()) {
+            builder.header("X-API-Key", apiKey);
+        }
+
+        HttpResponse<String> response = getClient().send(builder.build(), HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() == 401) {
+            throw new IOException("AI Microservice authentication failed (HTTP 401). Verify HMS_AI_API_KEY configuration.");
+        }
 
         if (response.statusCode() != 200) {
-            throw new IOException("AI Microservice returned error HTTP " + response.statusCode() + ": " + response.body());
+            throw new IOException("AI Microservice returned error HTTP " + response.statusCode());
         }
 
         return parsePredictionResponse(response.body());
@@ -101,14 +157,21 @@ public class CVDClient {
         String boundary = "----WebKitFormBoundary" + UUID.randomUUID().toString().replace("-", "");
         byte[] multipartBody = createMultipartBody(boundary, imageBytes, filename);
 
-        HttpRequest request = HttpRequest.newBuilder()
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + "/segment"))
                 .timeout(Duration.ofSeconds(120))
                 .header("Content-Type", "multipart/form-data; boundary=" + boundary)
-                .POST(HttpRequest.BodyPublishers.ofByteArray(multipartBody))
-                .build();
+                .POST(HttpRequest.BodyPublishers.ofByteArray(multipartBody));
 
-        HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
+        if (!apiKey.isEmpty()) {
+            builder.header("X-API-Key", apiKey);
+        }
+
+        HttpResponse<byte[]> response = getClient().send(builder.build(), HttpResponse.BodyHandlers.ofByteArray());
+
+        if (response.statusCode() == 401) {
+            throw new IOException("AI Microservice authentication failed during segmentation (HTTP 401).");
+        }
 
         if (response.statusCode() != 200) {
             throw new IOException("Vessel segmentation returned HTTP " + response.statusCode());
@@ -129,8 +192,10 @@ public class CVDClient {
     private byte[] createMultipartBody(String boundary, byte[] fileBytes, String filename) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
+        String safeFilename = filename != null ? filename.replaceAll("[^a-zA-Z0-9._-]", "_") : "scan.jpg";
+
         String header = "--" + boundary + "\r\n"
-                      + "Content-Disposition: form-data; name=\"file\"; filename=\"" + filename + "\"\r\n"
+                      + "Content-Disposition: form-data; name=\"file\"; filename=\"" + safeFilename + "\"\r\n"
                       + "Content-Type: image/jpeg\r\n\r\n";
 
         String footer = "\r\n--" + boundary + "--\r\n";

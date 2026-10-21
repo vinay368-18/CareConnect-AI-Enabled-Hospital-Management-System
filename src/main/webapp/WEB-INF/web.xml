@@ -1,12 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="https://jakarta.ee/xml/ns/jakartaee" xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd" id="WebApp_ID" version="6.0">
-  <display-name>HospitalManagementSystem</display-name>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="https://jakarta.ee/xml/ns/jakartaee"
+         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd"
+         id="WebApp_ID" version="6.0">
+
+  <display-name>CareConnect Hospital Management System</display-name>
+
   <welcome-file-list>
     <welcome-file>index.jsp</welcome-file>
     <welcome-file>login.jsp</welcome-file>
-    <welcome-file>index.html</welcome-file>
   </welcome-file-list>
+
+  <!-- Centralized Authentication Filter -->
+  <filter>
+    <filter-name>AuthenticationFilter</filter-name>
+    <filter-class>com.hms.filter.AuthenticationFilter</filter-class>
+  </filter>
+  <filter-mapping>
+    <filter-name>AuthenticationFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+  </filter-mapping>
+
+  <!-- Hardened Session Cookie Configuration -->
   <session-config>
-    <session-timeout>60</session-timeout>
+    <session-timeout>30</session-timeout>
+    <cookie-config>
+      <http-only>true</http-only>
+    </cookie-config>
+    <tracking-mode>COOKIE</tracking-mode>
   </session-config>
+
+  <!-- Generic Error Handlers (Prevents stack trace disclosure) -->
+  <error-page>
+    <error-code>404</error-code>
+    <location>/login.jsp</location>
+  </error-page>
+  <error-page>
+    <error-code>403</error-code>
+    <location>/login.jsp?error=unauthorized</location>
+  </error-page>
+  <error-page>
+    <error-code>500</error-code>
+    <location>/login.jsp?error=server_error</location>
+  </error-page>
+
 </web-app>

@@ -1,6 +1,18 @@
 <%@ page pageEncoding="UTF-8" contentType="text/html; charset=UTF-8" %>
 <%@ page import="java.util.List" %>
 <%@ page import="com.hms.model.Doctor" %>
+<%@ page import="com.hms.model.User" %>
+<%@ page import="com.hms.util.HtmlUtil" %>
+<%@ page import="com.hms.util.CSRFUtil" %>
+
+<%
+    User u = (session != null) ? (User) session.getAttribute("user") : null;
+    if (u == null) {
+        response.sendRedirect(request.getContextPath() + "/login.jsp?error=unauthorized");
+        return;
+    }
+    String csrfToken = CSRFUtil.getToken(session);
+%>
 
 <!DOCTYPE html>
 <html>
@@ -357,13 +369,12 @@
 
                         </a>
 
-                        <a href="${pageContext.request.contextPath}/DoctorServlet?action=delete&id=<%= doctor.getId() %>"
-                           class="delete-btn"
-                           onclick="return confirm('Are you sure you want to delete this doctor?');">
-
-                            Delete
-
-                        </a>
+                        <form action="/DoctorServlet" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this doctor?');">
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="id" value="<%= doctor.getId() %>">
+                                <input type="hidden" name="csrf_token" value="<%= HtmlUtil.escapeHtml(csrfToken) %>">
+                                <button type="submit" class="delete-btn" style="background:none;border:none;cursor:pointer;font:inherit;">Delete</button>
+                            </form>
 
                     </td>
 

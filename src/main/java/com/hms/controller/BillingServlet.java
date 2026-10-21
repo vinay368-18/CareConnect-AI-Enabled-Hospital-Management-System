@@ -7,6 +7,7 @@ import java.util.List;
 import com.hms.dao.BillingDAO;
 import com.hms.model.Bill;
 import com.hms.model.User;
+import com.hms.util.CSRFUtil;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -121,11 +122,7 @@ public class BillingServlet extends HttpServlet {
 
             editBill(request, response);
 
-        } else if ("delete".equals(action)) {
-
-            deleteBill(request, response);
-
-        } else {
+        } else if ("delete".equals(action)) { response.sendRedirect(request.getContextPath() + "/BillingServlet?action=list&error=method_not_allowed"); return; } else {
 
             response.sendRedirect(
                 request.getContextPath()
@@ -153,7 +150,19 @@ public class BillingServlet extends HttpServlet {
 
         String action = request.getParameter("action");
 
-        if ("add".equals(action)) {
+        if (!CSRFUtil.isValid(request)) {
+            response.sendRedirect(request.getContextPath() + "/BillingServlet?action=list&error=csrf");
+            return;
+        }
+
+        if ("delete".equals(action)) {
+            User u = (User) request.getSession().getAttribute("user");
+            if (u == null || !"ADMIN".equalsIgnoreCase(u.getRole())) {
+                response.sendRedirect(request.getContextPath() + "/BillingServlet?action=list&error=unauthorized");
+                return;
+            }
+            deleteBill(request, response);
+        } else if ("add".equals(action)) {
 
             addBill(request, response);
 

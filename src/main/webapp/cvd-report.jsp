@@ -3,6 +3,21 @@
     pageEncoding="UTF-8"%>
 
 <%@ page import="com.hms.model.CVDScreening" %>
+<%@ page import="com.hms.model.User" %>
+<%@ page import="com.hms.util.HtmlUtil" %>
+
+<%
+    User u = (session != null) ? (User) session.getAttribute("user") : null;
+    if (u == null) {
+        response.sendRedirect(request.getContextPath() + "/login.jsp?error=unauthorized");
+        return;
+    }
+    CVDScreening s = (CVDScreening) request.getAttribute("screening");
+    if (s == null) {
+        response.sendRedirect(request.getContextPath() + "/CVDServlet?action=list");
+        return;
+    }
+%>
 
 <!DOCTYPE html>
 <html lang="en">

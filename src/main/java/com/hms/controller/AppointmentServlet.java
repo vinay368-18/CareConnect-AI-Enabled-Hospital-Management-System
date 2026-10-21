@@ -8,6 +8,7 @@ import java.util.List;
 import com.hms.dao.AppointmentDAO;
 import com.hms.model.Appointment;
 import com.hms.model.User;
+import com.hms.util.CSRFUtil;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -96,19 +97,7 @@ public class AppointmentServlet extends HttpServlet {
 
             editAppointment(request, response);
 
-        } else if ("delete".equals(action)) {
-
-            if (!isAdminOrReceptionist(user)) {
-                response.sendRedirect(
-                    request.getContextPath()
-                    + "/AppointmentServlet?action=list&error=unauthorized"
-                );
-                return;
-            }
-
-            deleteAppointment(request, response);
-
-        } else {
+        } else if ("delete".equals(action)) { response.sendRedirect(request.getContextPath() + "/AppointmentServlet?action=list&error=method_not_allowed"); return; } else {
 
             response.sendRedirect(
                 request.getContextPath()
@@ -145,7 +134,14 @@ public class AppointmentServlet extends HttpServlet {
 
         String action = request.getParameter("action");
 
-        if ("add".equals(action)) {
+        if (!CSRFUtil.isValid(request)) {
+            response.sendRedirect(request.getContextPath() + "/AppointmentServlet?action=list&error=csrf");
+            return;
+        }
+
+        if ("delete".equals(action)) {
+            deleteAppointment(request, response);
+        } else if ("add".equals(action)) {
 
             addAppointment(request, response);
 

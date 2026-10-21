@@ -1,3 +1,19 @@
+<%@ page import="com.hms.model.User" %>
+<%@ page import="com.hms.util.HtmlUtil" %>
+<%@ page import="com.hms.util.CSRFUtil" %>
+
+<%
+    User u = (session != null) ? (User) session.getAttribute("user") : null;
+    if (u == null) {
+        response.sendRedirect(request.getContextPath() + "/login.jsp?error=unauthorized");
+        return;
+    }
+    if (!"ADMIN".equalsIgnoreCase(u.getRole())) {
+        response.sendRedirect(request.getContextPath() + "/dashboard.jsp?error=unauthorized");
+        return;
+    }
+    String csrfToken = CSRFUtil.getToken(session);
+%>
 <%@ page pageEncoding="UTF-8" contentType="text/html; charset=UTF-8" %>
 
 <!DOCTYPE html>
@@ -191,9 +207,8 @@
         <form action="${pageContext.request.contextPath}/DoctorServlet"
               method="post">
 
-            <input type="hidden"
-                   name="action"
-                   value="add">
+            <input type="hidden" name="action" value="add">
+            <input type="hidden" name="csrf_token" value="<%= HtmlUtil.escapeHtml(csrfToken) %>">
 
 
             <!-- NAME + SPECIALIZATION -->

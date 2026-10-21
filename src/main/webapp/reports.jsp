@@ -3,6 +3,24 @@
 
 <%@ page import="java.util.List" %>
 <%@ page import="com.hms.model.Appointment" %>
+<%@ page import="com.hms.model.User" %>
+<%@ page import="com.hms.util.HtmlUtil" %>
+
+<%
+    User u = (session != null) ? (User) session.getAttribute("user") : null;
+    if (u == null) {
+        response.sendRedirect(request.getContextPath() + "/login.jsp?error=unauthorized");
+        return;
+    }
+    if (!"ADMIN".equalsIgnoreCase(u.getRole()) && !"RECEPTIONIST".equalsIgnoreCase(u.getRole())) {
+        response.sendRedirect(request.getContextPath() + "/dashboard.jsp?error=unauthorized");
+        return;
+    }
+    if (request.getAttribute("totalPatients") == null) {
+        response.sendRedirect(request.getContextPath() + "/ReportServlet");
+        return;
+    }
+%>
 
 <%
     int totalPatients = (Integer) request.getAttribute("totalPatients");

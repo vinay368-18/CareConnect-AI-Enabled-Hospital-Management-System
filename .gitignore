@@ -9,3 +9,9 @@ __pycache__/
 
 # Uploaded files
 src/main/webapp/uploads/
+
+# Environment and credential files
+.env
+*.env
+.env.local
+*.lock

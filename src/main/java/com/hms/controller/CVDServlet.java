@@ -9,6 +9,7 @@ import com.hms.model.Doctor;
 import com.hms.model.Patient;
 import com.hms.model.User;
 import com.hms.service.CVDClient;
+import com.hms.util.CSRFUtil;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
@@ -105,7 +106,8 @@ public class CVDServlet extends HttpServlet {
                 viewScreeningReport(request, response);
                 break;
             case "delete":
-                deleteScreening(request, response);
+                // Security: GET-based deletion is strictly disallowed
+                response.sendRedirect(request.getContextPath() + "/CVDServlet?action=list&error=method_not_allowed");
                 break;
             case "list":
             default:
@@ -127,7 +129,17 @@ public class CVDServlet extends HttpServlet {
 
         String action = request.getParameter("action");
         if ("analyze".equalsIgnoreCase(action)) {
+            if (!CSRFUtil.isValid(request)) {
+                response.sendRedirect(request.getContextPath() + "/CVDServlet?action=new&error=csrf");
+                return;
+            }
             analyzeFundusScan(request, response);
+        } else if ("delete".equalsIgnoreCase(action)) {
+            if (!CSRFUtil.isValid(request)) {
+                response.sendRedirect(request.getContextPath() + "/CVDServlet?action=list&error=csrf");
+                return;
+            }
+            deleteScreening(request, response);
         } else {
             response.sendRedirect(request.getContextPath() + "/CVDServlet?action=list");
         }
@@ -136,7 +148,16 @@ public class CVDServlet extends HttpServlet {
     private void listScreenings(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        List<CVDScreening> screenings = cvdDAO.getAllScreenings();
+        User user = getLoggedInUser(request);
+        List<CVDScreening> screenings;
+
+        // If logged-in user is a DOCTOR with assigned doctorId, filter screenings or show all
+        if (user != null && "DOCTOR".equalsIgnoreCase(user.getRole()) && user.getDoctorId() > 0) {
+            screenings = cvdDAO.getAllScreenings();
+        } else {
+            screenings = cvdDAO.getAllScreenings();
+        }
+
         boolean isAiOnline = cvdClient.isServiceAvailable();
 
         request.setAttribute("screenings", screenings);
@@ -204,6 +225,20 @@ public class CVDServlet extends HttpServlet {
 
         try {
             int id = Integer.parseInt(request.getParameter("id"));
+            CVDScreening screening = cvdDAO.getScreeningById(id);
+            if (screening == null) {
+                response.sendRedirect(request.getContextPath() + "/CVDServlet?action=list&error=not_found");
+                return;
+            }
+
+            // If DOCTOR, check patient/screening authorization: doctors can only delete screenings they supervised
+            if ("DOCTOR".equalsIgnoreCase(user.getRole()) && user.getDoctorId() > 0) {
+                if (screening.getDoctorId() == null || screening.getDoctorId() != user.getDoctorId()) {
+                    response.sendRedirect(request.getContextPath() + "/CVDServlet?action=list&error=unauthorized_delete");
+                    return;
+                }
+            }
+
             cvdDAO.deleteScreening(id);
             response.sendRedirect(request.getContextPath() + "/CVDServlet?action=list&msg=deleted");
         } catch (NumberFormatException e) {
@@ -264,10 +299,15 @@ public class CVDServlet extends HttpServlet {
 
             String doctorIdStr = request.getParameter("doctorId");
             Integer doctorId = null;
-            if (doctorIdStr != null && !doctorIdStr.trim().isEmpty()) {
-                doctorId = Integer.parseInt(doctorIdStr.trim());
-            } else if (currentUser != null && "DOCTOR".equalsIgnoreCase(currentUser.getRole()) && currentUser.getDoctorId() > 0) {
+            if (currentUser != null && "DOCTOR".equalsIgnoreCase(currentUser.getRole()) && currentUser.getDoctorId() > 0) {
+                // Enforce doctor ID strictly from authenticated session to prevent doctor impersonation
                 doctorId = currentUser.getDoctorId();
+            } else if (doctorIdStr != null && !doctorIdStr.trim().isEmpty()) {
+                doctorId = Integer.parseInt(doctorIdStr.trim());
+                Doctor d = doctorDAO.getDoctorById(doctorId);
+                if (d == null) {
+                    doctorId = null;
+                }
             }
 
             String appointmentIdStr = request.getParameter("appointmentId");
@@ -280,7 +320,11 @@ public class CVDServlet extends HttpServlet {
             byte[] imageBytes = null;
             String savedFilename = null;
 
-            Part filePart = request.getPart("fundusImage");
+            Part filePart = null;
+            try {
+                filePart = request.getPart("fundusImage");
+            } catch (Exception ignored) {
+            }
 
             if (filePart != null && filePart.getSize() > 0 && filePart.getSubmittedFileName() != null
                     && !filePart.getSubmittedFileName().trim().isEmpty()) {

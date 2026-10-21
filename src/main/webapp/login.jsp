@@ -393,16 +393,9 @@
                 </button>
 
 
-                <!-- CREATE ACCOUNT -->
-
-                <div class="register-link">
-
-                    Don't have an account?
-
-                    <a href="${pageContext.request.contextPath}/RegisterServlet">
-                        Create Account
-                    </a>
-
+                <!-- ACCESS NOTICE -->
+                <div class="register-link" style="color: #6b7280; font-size: 13px;">
+                    Staff accounts are provisioned by the Hospital Administrator.
                 </div>
 
 

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CareConnect | Forgot Password</title>
+    <title>CareConnect | Password Assistance</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/style.css">
     <style>
         .forgot-container {
@@ -34,13 +34,13 @@
             line-height: 1.6;
         }
         .info-box {
-            background: #e6f6f4;
-            border-left: 4px solid #0f766e;
+            background: #eff6ff;
+            border-left: 4px solid #2563eb;
             padding: 16px;
             border-radius: 8px;
             margin: 20px 0;
             font-size: 14px;
-            color: #115e59;
+            color: #1e40af;
         }
         .info-box strong {
             display: block;
@@ -49,7 +49,7 @@
         .back-link {
             display: inline-block;
             margin-top: 20px;
-            color: #0f766e;
+            color: #2563eb;
             text-decoration: none;
             font-weight: 600;
             font-size: 14px;
@@ -66,16 +66,15 @@
                 <span class="brand-icon">+</span>
                 <span>Care<span>Connect</span></span>
             </div>
-            <h2>Password Recovery</h2>
-            <p>For security, administrator passwords can be retrieved or reset by the system administrator.</p>
+            <h2>Password Assistance</h2>
+            <p>To maintain patient confidentiality and system security, passwords cannot be recovered or displayed directly.</p>
             
             <div class="info-box">
-                <strong>Default System Credentials:</strong>
-                Username: <code>admin</code><br>
-                Password: <code>admin123</code>
+                <strong>Account Recovery Instructions:</strong>
+                Please contact your designated Hospital Systems Administrator or IT Security Office to request a verified password reset.
             </div>
 
-            <p>If you need to change your password directly, you can also update the <code>users</code> table in your MySQL <code>hospital</code> database.</p>
+            <p>If you are an authorized administrator needing to provision or rotate system credentials, refer to the offline administrative setup protocol in the system documentation.</p>
             
             <a href="${pageContext.request.contextPath}/login.jsp" class="back-link">← Back to Login</a>
         </div>

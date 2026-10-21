@@ -3,6 +3,18 @@
 
 <%@ page import="java.util.List" %>
 <%@ page import="com.hms.model.Bill" %>
+<%@ page import="com.hms.model.User" %>
+<%@ page import="com.hms.util.HtmlUtil" %>
+<%@ page import="com.hms.util.CSRFUtil" %>
+
+<%
+    User u = (session != null) ? (User) session.getAttribute("user") : null;
+    if (u == null) {
+        response.sendRedirect(request.getContextPath() + "/login.jsp?error=unauthorized");
+        return;
+    }
+    String csrfToken = CSRFUtil.getToken(session);
+%>
 
 <!DOCTYPE html>
 <html>
@@ -364,11 +376,12 @@
                             Edit
                         </a>
 
-                        <a class="delete-btn"
-                           href="${pageContext.request.contextPath}/BillingServlet?action=delete&id=<%= bill.getId() %>"
-                           onclick="return confirm('Are you sure you want to delete this bill?');">
-                            Delete
-                        </a>
+                        <form action="/BillingServlet" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this bill?');">
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="id" value="<%= bill.getId() %>">
+                                <input type="hidden" name="csrf_token" value="<%= HtmlUtil.escapeHtml(csrfToken) %>">
+                                <button type="submit" class="delete-btn" style="background:none;border:none;cursor:pointer;font:inherit;">Delete</button>
+                            </form>
 
                     </td>
 

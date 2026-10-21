@@ -1,11 +1,30 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ page import="java.util.List" %>
 <%@ page import="com.hms.model.Doctor" %>
+<%@ page import="com.hms.model.User" %>
+<%@ page import="com.hms.util.HtmlUtil" %>
+<%@ page import="com.hms.util.CSRFUtil" %>
+
+<%
+    User sessionUser = (session != null) ? (User) session.getAttribute("user") : null;
+    if (sessionUser == null) {
+        response.sendRedirect(request.getContextPath() + "/login.jsp?error=unauthorized");
+        return;
+    }
+    if (!"ADMIN".equalsIgnoreCase(sessionUser.getRole())) {
+        response.sendRedirect(request.getContextPath() + "/dashboard.jsp?error=unauthorized");
+        return;
+    }
+
+    String csrfToken = CSRFUtil.getToken(session);
+%>
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Create Account - CareConnect</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Provision Staff Account - CareConnect</title>
 
     <style>
         * {
@@ -21,10 +40,11 @@
             justify-content: center;
             align-items: center;
             background: #f4f7fb;
+            padding: 20px;
         }
 
         .container {
-            width: 430px;
+            width: 480px;
             background: white;
             padding: 35px;
             border-radius: 14px;
@@ -42,8 +62,20 @@
         .subtitle {
             text-align: center;
             color: #666;
-            margin-bottom: 28px;
+            margin-bottom: 24px;
             font-size: 14px;
+        }
+
+        .admin-badge {
+            display: inline-block;
+            background: #e0e7ff;
+            color: #3730a3;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin-top: 4px;
         }
 
         .form-group {
@@ -94,14 +126,14 @@
             background: #1d4ed8;
         }
 
-        .login-link {
+        .back-link {
             text-align: center;
             margin-top: 22px;
             font-size: 14px;
             color: #666;
         }
 
-        .login-link a {
+        .back-link a {
             color: #2563eb;
             text-decoration: none;
             font-weight: bold;
@@ -117,31 +149,37 @@
             font-size: 13px;
         }
 
-        .info {
-            background: #eff6ff;
-            color: #1d4ed8;
+        .success {
+            background: #def7ec;
+            color: #03543f;
             padding: 10px;
             border-radius: 7px;
             margin-bottom: 18px;
             text-align: center;
             font-size: 13px;
         }
+
+        .info {
+            background: #eff6ff;
+            color: #1d4ed8;
+            padding: 10px;
+            border-radius: 7px;
+            margin-bottom: 18px;
+            font-size: 13px;
+            line-height: 1.4;
+        }
     </style>
 
     <script>
         function handleRoleChange() {
-
             const role = document.getElementById("role").value;
             const doctorSection = document.getElementById("doctorSection");
             const doctorId = document.getElementById("doctorId");
 
             if (role === "DOCTOR") {
-
                 doctorSection.style.display = "block";
                 doctorId.required = true;
-
             } else {
-
                 doctorSection.style.display = "none";
                 doctorId.required = false;
                 doctorId.value = "";
@@ -157,11 +195,13 @@
     <div class="logo">CareConnect</div>
 
     <div class="subtitle">
-        Create Staff Account
+        Administrative Staff Provisioning<br>
+        <span class="admin-badge">Admin Authorization Required</span>
     </div>
 
     <%
         String error = request.getParameter("error");
+        String registered = request.getParameter("registered");
 
         if ("empty".equals(error)) {
     %>
@@ -175,133 +215,132 @@
             Passwords do not match.
         </div>
     <%
+        } else if ("weakpassword".equals(error)) {
+    %>
+        <div class="error">
+            Password must be at least 8 characters long.
+        </div>
+    <%
+        } else if ("invalidusername".equals(error)) {
+    %>
+        <div class="error">
+            Username must be 3-50 alphanumeric characters (or . - _).
+        </div>
+    <%
         } else if ("exists".equals(error)) {
     %>
         <div class="error">
-            Username already exists.
+            Username already exists in the system.
         </div>
     <%
         } else if ("invalidrole".equals(error)) {
     %>
         <div class="error">
-            Invalid account role.
+            Invalid account role specified.
         </div>
     <%
         } else if ("doctor".equals(error)) {
     %>
         <div class="error">
-            Please select a doctor.
+            Please select an existing doctor profile.
         </div>
     <%
         } else if ("failed".equals(error)) {
     %>
         <div class="error">
-            Account creation failed. Please try again.
+            Account provisioning failed. Please try again.
+        </div>
+    <%
+        } else if ("true".equals(registered)) {
+    %>
+        <div class="success">
+            Staff account created successfully!
         </div>
     <%
         }
     %>
 
     <div class="info">
-        Only Receptionist and Doctor accounts can be created here.
+        Only authorized administrators can provision Receptionist and Doctor staff credentials.
     </div>
 
     <form action="RegisterServlet" method="post">
+        <input type="hidden" name="csrf_token" value="<%= HtmlUtil.escapeHtml(csrfToken) %>">
 
         <div class="form-group">
-            <label for="username">Username</label>
-
+            <label for="username">Staff Username</label>
             <input
                 type="text"
                 id="username"
                 name="username"
-                placeholder="Enter username"
+                placeholder="Enter username (min 3 chars)"
                 maxlength="50"
                 required>
         </div>
 
         <div class="form-group">
-            <label for="password">Password</label>
-
+            <label for="password">Temporary Password</label>
             <input
                 type="password"
                 id="password"
                 name="password"
-                placeholder="Enter password"
+                placeholder="Minimum 8 characters"
+                minlength="8"
                 required>
         </div>
 
         <div class="form-group">
             <label for="confirmPassword">Confirm Password</label>
-
             <input
                 type="password"
                 id="confirmPassword"
                 name="confirmPassword"
                 placeholder="Confirm password"
+                minlength="8"
                 required>
         </div>
 
         <div class="form-group">
-            <label for="role">Account Type</label>
-
+            <label for="role">Staff Role</label>
             <select
                 id="role"
                 name="role"
                 onchange="handleRoleChange()"
                 required>
-
-                <option value="">Select account type</option>
+                <option value="">Select staff role</option>
                 <option value="RECEPTIONIST">Receptionist</option>
                 <option value="DOCTOR">Doctor</option>
-
             </select>
         </div>
 
-        <div
-            class="form-group doctor-section"
-            id="doctorSection">
-
-            <label for="doctorId">Select Doctor</label>
-
-            <select
-                id="doctorId"
-                name="doctorId">
-
-                <option value="">Select doctor</option>
-
+        <div class="form-group doctor-section" id="doctorSection">
+            <label for="doctorId">Linked Doctor Profile</label>
+            <select id="doctorId" name="doctorId">
+                <option value="">Select doctor profile</option>
                 <%
-                    List<Doctor> doctors =
-                        (List<Doctor>) request.getAttribute("doctors");
-
+                    List<Doctor> doctors = (List<Doctor>) request.getAttribute("doctors");
                     if (doctors != null) {
-
                         for (Doctor doctor : doctors) {
                 %>
-
                     <option value="<%= doctor.getId() %>">
-                        <%= doctor.getName() %>
+                        <%= HtmlUtil.escapeHtml(doctor.getName()) %>
                         -
-                        <%= doctor.getSpecialization() %>
+                        <%= HtmlUtil.escapeHtml(doctor.getSpecialization()) %>
                     </option>
-
                 <%
                         }
                     }
                 %>
-
             </select>
         </div>
 
         <button type="submit" class="btn">
-            Create Account
+            Provision Staff Account
         </button>
-
     </form>
 
-    <div class="login-link">
-        Already have an account?
-        <a href="login.jsp">Sign In</a>
+    <div class="back-link">
+        <a href="${pageContext.request.contextPath}/dashboard.jsp">← Back to Dashboard</a>
     </div>
 
 </div>

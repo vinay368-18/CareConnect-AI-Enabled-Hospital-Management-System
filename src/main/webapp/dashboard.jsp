@@ -8,6 +8,14 @@
 <%@ page import="com.hms.model.Appointment" %>
 <%@ page import="com.hms.model.CVDScreening" %>
 <%@ page import="com.hms.model.User" %>
+<%@ page import="com.hms.util.HtmlUtil" %>
+
+<%
+    if (session == null || session.getAttribute("user") == null) {
+        response.sendRedirect(request.getContextPath() + "/login.jsp?error=unauthorized");
+        return;
+    }
+%>
 
 <%
     ReportDAO reportDAO = new ReportDAO();
@@ -620,8 +628,14 @@
                 <span class="menu-icon">❤️</span>
 
                 <span>CVD Diagnostics</span>
-
             </a>
+
+            <% if ("ADMIN".equalsIgnoreCase(role)) { %>
+            <a href="/RegisterServlet" style="color: #4f46e5; font-weight: bold;">
+                <span class="menu-icon">??</span>
+                <span>Staff Provisioning</span>
+            </a>
+            <% } %>
 
         </nav>
 
@@ -679,18 +693,18 @@
                 <div class="profile-info">
 
                     <div class="profile-name">
-                        <%= currentUser %>
+                        <%= HtmlUtil.escapeHtml(currentUser) %>
                     </div>
 
                     <div class="profile-role">
-                        <%= role %>
+                        <%= HtmlUtil.escapeHtml(role) %>
                     </div>
 
                 </div>
 
 
                 <div class="avatar">
-                    <%= initial %>
+                    <%= HtmlUtil.escapeHtml(initial) %>
                 </div>
 
             </div>
@@ -708,7 +722,7 @@
             <div class="welcome">
 
                 <h2>
-                    Welcome back, <%= currentUser %>
+                    Welcome back, <%= HtmlUtil.escapeHtml(currentUser) %>
                 </h2>
 
                 <p>

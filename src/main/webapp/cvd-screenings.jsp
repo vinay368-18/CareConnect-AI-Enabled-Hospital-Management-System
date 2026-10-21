@@ -4,6 +4,18 @@
 
 <%@ page import="java.util.List" %>
 <%@ page import="com.hms.model.CVDScreening" %>
+<%@ page import="com.hms.model.User" %>
+<%@ page import="com.hms.util.HtmlUtil" %>
+<%@ page import="com.hms.util.CSRFUtil" %>
+
+<%
+    User u = (session != null) ? (User) session.getAttribute("user") : null;
+    if (u == null) {
+        response.sendRedirect(request.getContextPath() + "/login.jsp?error=unauthorized");
+        return;
+    }
+    String csrfToken = CSRFUtil.getToken(session);
+%>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -415,10 +427,12 @@
                             <a href="${pageContext.request.contextPath}/CVDServlet?action=view&id=<%= s.getScreeningId() %>" class="btn-view">
                                 View Report
                             </a>
-                            <a href="${pageContext.request.contextPath}/CVDServlet?action=delete&id=<%= s.getScreeningId() %>" class="btn-del"
-                               onclick="return confirm('Are you sure you want to delete this AI screening record?');">
-                                Delete
-                            </a>
+                            <form action="/CVDServlet" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this AI screening record?');">
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="id" value="<%= s.getScreeningId() %>">
+                                <input type="hidden" name="csrf_token" value="<%= HtmlUtil.escapeHtml(csrfToken) %>">
+                                <button type="submit" class="btn-del" style="background:none;border:none;cursor:pointer;font:inherit;">Delete</button>
+                            </form>
                         </div>
                     </td>
                 </tr>

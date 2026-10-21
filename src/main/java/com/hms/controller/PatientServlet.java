@@ -6,6 +6,7 @@ import java.util.List;
 import com.hms.dao.PatientDAO;
 import com.hms.model.Patient;
 import com.hms.model.User;
+import com.hms.util.CSRFUtil;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -258,20 +259,7 @@ public class PatientServlet extends HttpServlet {
         // ADMIN ONLY
         // =========================
 
-        else if ("delete".equals(action)) {
-
-            if (!checkAdmin(
-                    request,
-                    response)) {
-
-                return;
-            }
-
-            deletePatient(
-                    request,
-                    response
-            );
-        }
+        else if ("delete".equals(action)) { response.sendRedirect(request.getContextPath() + "/PatientServlet?action=list&error=method_not_allowed"); return; }
 
         // =========================
         // UNKNOWN ACTION
@@ -319,7 +307,17 @@ public class PatientServlet extends HttpServlet {
         // ADMIN + RECEPTIONIST
         // =========================
 
-        if ("add".equals(action)) {
+        if (!CSRFUtil.isValid(request)) {
+            response.sendRedirect(request.getContextPath() + "/PatientServlet?action=list&error=csrf");
+            return;
+        }
+
+        if ("delete".equals(action)) {
+            if (!checkAdmin(request, response)) {
+                return;
+            }
+            deletePatient(request, response);
+        } else if ("add".equals(action)) {
 
             addPatient(
                     request,
