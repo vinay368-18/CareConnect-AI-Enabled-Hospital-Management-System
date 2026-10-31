@@ -1,0 +1,16 @@
+RETINAL VESSEL MASK QUALITY REPORT
+=================================
+Image dimensions: 512 x 395
+White vessel pixels: 25026
+Total image pixels: 202240
+White-pixel coverage of full image: 12.37%
+Connected components, excluding background: 70
+Components with at least 10 pixels: 18
+Largest component area: 24303 pixels
+Median local mask width estimate: 2.00 pixels
+
+Interpretation:
+- Coverage is calculated over the full rectangular image, not just the retinal field.
+- Components may include true vessels, false positives, or disconnected vessel fragments.
+- Width is an approximate mask-thickness measure, not anatomical vessel diameter.
+- These metrics alone do not measure segmentation accuracy; a reference mask is needed.
