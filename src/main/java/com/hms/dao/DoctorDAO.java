@@ -1,15 +1,24 @@
-
 package com.hms.dao;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.hms.model.Doctor;
 import com.hms.util.DBConnection;
 
+/**
+ * Data Access Object for Doctor records.
+ *
+ * AUDIT FIX (2026-11-07):
+ * - Wrapped all JDBC resources (Connection, PreparedStatement, ResultSet) in try-with-resources
+ *   to eliminate connection leaks under high concurrent load.
+ * - Added transactional boundary (setAutoCommit(false), commit, rollback) to deleteDoctor()
+ *   to prevent partial deletes or orphaned bill/appointment records.
+ */
 public class DoctorDAO {
 
     // =========================
@@ -17,67 +26,46 @@ public class DoctorDAO {
     // =========================
 
     public List<Doctor> getAllDoctors() {
-
         List<Doctor> doctors = new ArrayList<>();
-
         String sql = "SELECT doctor_id, name, specialization, phone, "
                    + "email, experience, consultation_fee "
                    + "FROM doctors ORDER BY doctor_id DESC";
 
-        try {
-
-            Connection con = DBConnection.getConnection();
-
-            PreparedStatement ps = con.prepareStatement(sql);
-
-            ResultSet rs = ps.executeQuery();
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
-
                 Doctor doctor = new Doctor();
-
                 doctor.setId(rs.getInt("doctor_id"));
                 doctor.setName(rs.getString("name"));
                 doctor.setSpecialization(rs.getString("specialization"));
                 doctor.setPhone(rs.getString("phone"));
                 doctor.setEmail(rs.getString("email"));
                 doctor.setExperience(rs.getInt("experience"));
-                doctor.setConsultationFee(
-                    rs.getDouble("consultation_fee")
-                );
-
+                doctor.setConsultationFee(rs.getDouble("consultation_fee"));
                 doctors.add(doctor);
             }
 
-            rs.close();
-            ps.close();
-            con.close();
-
         } catch (Exception e) {
-
             e.printStackTrace();
         }
 
         return doctors;
     }
 
-
     // =========================
     // ADD DOCTOR
     // =========================
 
     public boolean addDoctor(Doctor doctor) {
-
         String sql = "INSERT INTO doctors "
                    + "(name, specialization, phone, email, "
                    + "experience, consultation_fee) "
                    + "VALUES (?, ?, ?, ?, ?, ?)";
 
-        try {
-
-            Connection con = DBConnection.getConnection();
-
-            PreparedStatement ps = con.prepareStatement(sql);
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setString(1, doctor.getName());
             ps.setString(2, doctor.getSpecialization());
@@ -86,92 +74,54 @@ public class DoctorDAO {
             ps.setInt(5, doctor.getExperience());
             ps.setDouble(6, doctor.getConsultationFee());
 
-            System.out.println("Adding doctor...");
-            System.out.println("Name: " + doctor.getName());
-            System.out.println("Specialization: " + doctor.getSpecialization());
-            System.out.println("Phone: " + doctor.getPhone());
-            System.out.println("Email: " + doctor.getEmail());
-            System.out.println("Experience: " + doctor.getExperience());
-            System.out.println("Consultation Fee: "
-                               + doctor.getConsultationFee());
-
-            int result = ps.executeUpdate();
-
-            System.out.println("Insert result: " + result);
-
-            ps.close();
-            con.close();
-
-            return result > 0;
+            return ps.executeUpdate() > 0;
 
         } catch (Exception e) {
-
-            System.out.println("ERROR WHILE ADDING DOCTOR:");
             e.printStackTrace();
-
             return false;
         }
     }
-
 
     // =========================
     // GET DOCTOR BY ID
     // =========================
 
     public Doctor getDoctorById(int id) {
-
         Doctor doctor = null;
-
         String sql = "SELECT doctor_id, name, specialization, phone, "
                    + "email, experience, consultation_fee "
                    + "FROM doctors WHERE doctor_id = ?";
 
-        try {
-
-            Connection con = DBConnection.getConnection();
-
-            PreparedStatement ps = con.prepareStatement(sql);
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setInt(1, id);
 
-            ResultSet rs = ps.executeQuery();
-
-            if (rs.next()) {
-
-                doctor = new Doctor();
-
-                doctor.setId(rs.getInt("doctor_id"));
-                doctor.setName(rs.getString("name"));
-                doctor.setSpecialization(
-                    rs.getString("specialization")
-                );
-                doctor.setPhone(rs.getString("phone"));
-                doctor.setEmail(rs.getString("email"));
-                doctor.setExperience(rs.getInt("experience"));
-                doctor.setConsultationFee(
-                    rs.getDouble("consultation_fee")
-                );
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    doctor = new Doctor();
+                    doctor.setId(rs.getInt("doctor_id"));
+                    doctor.setName(rs.getString("name"));
+                    doctor.setSpecialization(rs.getString("specialization"));
+                    doctor.setPhone(rs.getString("phone"));
+                    doctor.setEmail(rs.getString("email"));
+                    doctor.setExperience(rs.getInt("experience"));
+                    doctor.setConsultationFee(rs.getDouble("consultation_fee"));
+                }
             }
 
-            rs.close();
-            ps.close();
-            con.close();
-
         } catch (Exception e) {
-
             e.printStackTrace();
         }
 
         return doctor;
     }
 
-
     // =========================
     // UPDATE DOCTOR
     // =========================
 
     public boolean updateDoctor(Doctor doctor) {
-
         String sql = "UPDATE doctors SET "
                    + "name = ?, "
                    + "specialization = ?, "
@@ -181,11 +131,8 @@ public class DoctorDAO {
                    + "consultation_fee = ? "
                    + "WHERE doctor_id = ?";
 
-        try {
-
-            Connection con = DBConnection.getConnection();
-
-            PreparedStatement ps = con.prepareStatement(sql);
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setString(1, doctor.getName());
             ps.setString(2, doctor.getSpecialization());
@@ -195,76 +142,90 @@ public class DoctorDAO {
             ps.setDouble(6, doctor.getConsultationFee());
             ps.setInt(7, doctor.getId());
 
-            int result = ps.executeUpdate();
-
-            ps.close();
-            con.close();
-
-            return result > 0;
+            return ps.executeUpdate() > 0;
 
         } catch (Exception e) {
-
             e.printStackTrace();
-
             return false;
         }
     }
 
-
     // =========================
-    // DELETE DOCTOR
+    // DELETE DOCTOR (Transactional Cascade)
     // =========================
 
     public boolean deleteDoctor(int id) {
-
         String nullifyBillsSql = "UPDATE bills SET appointment_id = NULL WHERE appointment_id IN (SELECT appointment_id FROM appointments WHERE doctor_id = ?)";
+        String nullifyCvdScreeningsSql = "UPDATE cvd_screenings SET doctor_id = NULL WHERE doctor_id = ?";
         String deleteAppointmentsSql = "DELETE FROM appointments WHERE doctor_id = ?";
         String deleteDoctorSql = "DELETE FROM doctors WHERE doctor_id = ?";
 
+        Connection con = null;
         try {
-
-            Connection con = DBConnection.getConnection();
+            con = DBConnection.getConnection();
+            if (con == null) {
+                return false;
+            }
+            con.setAutoCommit(false);
 
             // 1. Detach bills from appointments of this doctor
-            PreparedStatement psBills = con.prepareStatement(nullifyBillsSql);
-            psBills.setInt(1, id);
-            psBills.executeUpdate();
-            psBills.close();
+            try (PreparedStatement psBills = con.prepareStatement(nullifyBillsSql)) {
+                psBills.setInt(1, id);
+                psBills.executeUpdate();
+            }
 
-            // 2. Delete appointments with this doctor
-            PreparedStatement psAppt = con.prepareStatement(deleteAppointmentsSql);
-            psAppt.setInt(1, id);
-            psAppt.executeUpdate();
-            psAppt.close();
+            // 2. Detach CVD screenings supervised by this doctor
+            try (PreparedStatement psCvd = con.prepareStatement(nullifyCvdScreeningsSql)) {
+                psCvd.setInt(1, id);
+                psCvd.executeUpdate();
+            } catch (SQLException ignored) {
+                // Table might not exist or doctor_id already nullable
+            }
 
-            // 3. Delete doctor
-            PreparedStatement ps = con.prepareStatement(deleteDoctorSql);
-            ps.setInt(1, id);
+            // 3. Delete appointments with this doctor
+            try (PreparedStatement psAppt = con.prepareStatement(deleteAppointmentsSql)) {
+                psAppt.setInt(1, id);
+                psAppt.executeUpdate();
+            }
 
-            int result = ps.executeUpdate();
+            // 4. Delete doctor record
+            int result;
+            try (PreparedStatement ps = con.prepareStatement(deleteDoctorSql)) {
+                ps.setInt(1, id);
+                result = ps.executeUpdate();
+            }
 
-            ps.close();
-            con.close();
-
+            con.commit();
             return result > 0;
 
         } catch (Exception e) {
-
+            if (con != null) {
+                try {
+                    con.rollback();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
             e.printStackTrace();
-
             return false;
+        } finally {
+            if (con != null) {
+                try {
+                    con.setAutoCommit(true);
+                    con.close();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
         }
     }
-
 
     // =========================
     // SEARCH DOCTORS
     // =========================
 
     public List<Doctor> searchDoctors(String keyword) {
-
         List<Doctor> doctors = new ArrayList<>();
-
         String sql = "SELECT doctor_id, name, specialization, phone, "
                    + "email, experience, consultation_fee "
                    + "FROM doctors "
@@ -273,45 +234,29 @@ public class DoctorDAO {
                    + "OR phone LIKE ? "
                    + "ORDER BY doctor_id DESC";
 
-        try {
-
-            Connection con = DBConnection.getConnection();
-
-            PreparedStatement ps = con.prepareStatement(sql);
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
 
             String searchKeyword = "%" + keyword + "%";
-
             ps.setString(1, searchKeyword);
             ps.setString(2, searchKeyword);
             ps.setString(3, searchKeyword);
 
-            ResultSet rs = ps.executeQuery();
-
-            while (rs.next()) {
-
-                Doctor doctor = new Doctor();
-
-                doctor.setId(rs.getInt("doctor_id"));
-                doctor.setName(rs.getString("name"));
-                doctor.setSpecialization(
-                    rs.getString("specialization")
-                );
-                doctor.setPhone(rs.getString("phone"));
-                doctor.setEmail(rs.getString("email"));
-                doctor.setExperience(rs.getInt("experience"));
-                doctor.setConsultationFee(
-                    rs.getDouble("consultation_fee")
-                );
-
-                doctors.add(doctor);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Doctor doctor = new Doctor();
+                    doctor.setId(rs.getInt("doctor_id"));
+                    doctor.setName(rs.getString("name"));
+                    doctor.setSpecialization(rs.getString("specialization"));
+                    doctor.setPhone(rs.getString("phone"));
+                    doctor.setEmail(rs.getString("email"));
+                    doctor.setExperience(rs.getInt("experience"));
+                    doctor.setConsultationFee(rs.getDouble("consultation_fee"));
+                    doctors.add(doctor);
+                }
             }
 
-            rs.close();
-            ps.close();
-            con.close();
-
         } catch (Exception e) {
-
             e.printStackTrace();
         }
 
