@@ -22,6 +22,9 @@ public class CVDScreening {
     private Integer appointmentId;
     private String imagePath;
 
+    // Segmentation model used (e.g., "Residual U-Net", "U-Net", "Attention U-Net")
+    private String modelName;
+
     // Residual U-Net vessel segmentation (optional; null when not available)
     private String vesselOverlayPath;
     private Double vesselDensity;           // % of the retinal area classified as vessel
@@ -129,12 +132,29 @@ public class CVDScreening {
         this.imagePath = imagePath;
     }
 
+    public String getModelName() {
+        return modelName;
+    }
+
+    public void setModelName(String modelName) {
+        this.modelName = modelName;
+    }
+
     public String getCvdPrediction() {
         return cvdPrediction;
     }
 
     public void setCvdPrediction(String cvdPrediction) {
         this.cvdPrediction = cvdPrediction;
+    }
+
+    // Alias for specification compatibility
+    public String getCvdResult() {
+        return cvdPrediction;
+    }
+
+    public void setCvdResult(String cvdResult) {
+        this.cvdPrediction = cvdResult;
     }
 
     public double getCvdProbability() {
@@ -153,12 +173,30 @@ public class CVDScreening {
         this.hypertensionPrediction = hypertensionPrediction;
     }
 
+    // Alias for specification compatibility
+    public String getHtResult() {
+        return hypertensionPrediction;
+    }
+
+    public void setHtResult(String htResult) {
+        this.hypertensionPrediction = htResult;
+    }
+
     public double getHypertensionProbability() {
         return hypertensionProbability;
     }
 
     public void setHypertensionProbability(double hypertensionProbability) {
         this.hypertensionProbability = hypertensionProbability;
+    }
+
+    // Alias for specification compatibility
+    public double getHtProbability() {
+        return hypertensionProbability;
+    }
+
+    public void setHtProbability(double htProbability) {
+        this.hypertensionProbability = htProbability;
     }
 
     public String getDrGrade() {
@@ -201,6 +239,15 @@ public class CVDScreening {
         this.recommendation = recommendation;
     }
 
+    // Alias for specification compatibility
+    public String getRecommendations() {
+        return recommendation;
+    }
+
+    public void setRecommendations(String recommendations) {
+        this.recommendation = recommendations;
+    }
+
     public Timestamp getScreeningDate() {
         return screeningDate;
     }
@@ -209,12 +256,30 @@ public class CVDScreening {
         this.screeningDate = screeningDate;
     }
 
+    // Alias for specification compatibility
+    public Timestamp getCreatedAt() {
+        return screeningDate;
+    }
+
+    public void setCreatedAt(Timestamp createdAt) {
+        this.screeningDate = createdAt;
+    }
+
     public String getVesselOverlayPath() {
         return vesselOverlayPath;
     }
 
     public void setVesselOverlayPath(String vesselOverlayPath) {
         this.vesselOverlayPath = vesselOverlayPath;
+    }
+
+    // Alias for specification compatibility
+    public String getMaskPath() {
+        return vesselOverlayPath;
+    }
+
+    public void setMaskPath(String maskPath) {
+        this.vesselOverlayPath = maskPath;
     }
 
     public Double getVesselDensity() {
