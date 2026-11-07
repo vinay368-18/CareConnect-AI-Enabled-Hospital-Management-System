@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
@@ -32,6 +33,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * Servlet controller for CVD AI Screening operations.
+ *
+ * AUDIT FIX (2026-11-07):
+ * - Reads modelName from request parameter and passes to CVDClient + entity.
+ * - Persists AI recommendation from Python response.
+ */
 @WebServlet("/CVDServlet")
 @MultipartConfig(
         fileSizeThreshold = 1024 * 1024 * 2,  // 2MB
@@ -262,14 +270,16 @@ public class CVDServlet extends HttpServlet {
             String overlayName = "vessel_" + baseName + ".png";
 
             String uploadPath = getServletContext().getRealPath("/uploads/fundus");
-            if (uploadPath == null) {
-                uploadPath = new File("src/main/webapp/uploads/fundus").getAbsolutePath();
+            Path uploadDirPath;
+            if (uploadPath != null) {
+                uploadDirPath = Path.of(uploadPath);
+            } else {
+                uploadDirPath = Path.of("src", "main", "webapp", "uploads", "fundus").toAbsolutePath();
             }
-            File uploadDir = new File(uploadPath);
-            if (!uploadDir.exists()) {
-                uploadDir.mkdirs();
+            if (!Files.exists(uploadDirPath)) {
+                Files.createDirectories(uploadDirPath);
             }
-            Files.write(new File(uploadDir, overlayName).toPath(), vessels.getOverlayPng());
+            Files.write(uploadDirPath.resolve(overlayName), vessels.getOverlayPng());
 
             cvdDAO.updateVesselResult(screeningId, "uploads/fundus/" + overlayName, vessels.getDensityPercent());
         } catch (Exception e) {
@@ -317,6 +327,12 @@ public class CVDServlet extends HttpServlet {
             String notes = request.getParameter("notes");
             String sampleImage = request.getParameter("sampleImage");
 
+            // FIX: Read the model selection from the form
+            String modelName = request.getParameter("modelName");
+            if (modelName == null || modelName.trim().isEmpty()) {
+                modelName = "Residual U-Net";  // Default
+            }
+
             byte[] imageBytes = null;
             String savedFilename = null;
 
@@ -343,35 +359,37 @@ public class CVDServlet extends HttpServlet {
                 // Sanitize and randomize file destination
                 savedFilename = "fundus_" + UUID.randomUUID().toString().substring(0, 8) + "_" + System.currentTimeMillis() + ext;
 
-                // Save to webapp uploads folder
+                // Save to webapp uploads folder using cross-platform NIO Path
                 String uploadPath = getServletContext().getRealPath("/uploads/fundus");
-                if (uploadPath == null) {
-                    uploadPath = new File("src/main/webapp/uploads/fundus").getAbsolutePath();
+                Path uploadDirPath;
+                if (uploadPath != null) {
+                    uploadDirPath = Path.of(uploadPath);
+                } else {
+                    uploadDirPath = Path.of("src", "main", "webapp", "uploads", "fundus").toAbsolutePath();
                 }
-                File uploadDir = new File(uploadPath);
-                if (!uploadDir.exists()) {
-                    uploadDir.mkdirs();
+                if (!Files.exists(uploadDirPath)) {
+                    Files.createDirectories(uploadDirPath);
                 }
 
-                File destinationFile = new File(uploadDir, savedFilename);
+                Path destinationFile = uploadDirPath.resolve(savedFilename);
                 try (InputStream input = filePart.getInputStream()) {
-                    Files.copy(input, destinationFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    Files.copy(input, destinationFile, StandardCopyOption.REPLACE_EXISTING);
                 }
 
-                imageBytes = Files.readAllBytes(destinationFile.toPath());
+                imageBytes = Files.readAllBytes(destinationFile);
 
             } else if (sampleImage != null && !sampleImage.trim().isEmpty()) {
                 // Sanitize sample image input against directory traversal
                 String cleanSample = Paths.get(sampleImage).getFileName().toString();
                 String sampleRealPath = getServletContext().getRealPath("/uploads/fundus/samples/" + cleanSample);
-                File sampleFile = (sampleRealPath != null) ? new File(sampleRealPath) : null;
+                Path samplePath = (sampleRealPath != null) ? Path.of(sampleRealPath) : null;
 
-                if (sampleFile == null || !sampleFile.exists()) {
-                    sampleFile = new File("src/main/webapp/uploads/fundus/samples/" + cleanSample);
+                if (samplePath == null || !Files.exists(samplePath)) {
+                    samplePath = Path.of("src", "main", "webapp", "uploads", "fundus", "samples", cleanSample);
                 }
 
-                if (sampleFile.exists()) {
-                    imageBytes = Files.readAllBytes(sampleFile.toPath());
+                if (Files.exists(samplePath)) {
+                    imageBytes = Files.readAllBytes(samplePath);
                     savedFilename = "samples/" + cleanSample;
                 }
             }
@@ -387,10 +405,12 @@ public class CVDServlet extends HttpServlet {
                 return;
             }
 
-            // Call Python AI Microservice
+            // Call Python AI Microservice — now with model name
             CVDScreening screeningResult;
             try {
-                screeningResult = cvdClient.analyzeImage(imageBytes, savedFilename != null ? savedFilename : "scan.jpg");
+                screeningResult = cvdClient.analyzeImage(imageBytes,
+                        savedFilename != null ? savedFilename : "scan.jpg",
+                        modelName);
             } catch (IOException e) {
                 if (e.getMessage() != null && e.getMessage().contains("HTTP 400")) {
                     response.sendRedirect(request.getContextPath() + "/CVDServlet?action=new&patientId=" + patientId + "&error=corrupt_image");
@@ -405,6 +425,11 @@ public class CVDServlet extends HttpServlet {
             screeningResult.setAppointmentId(appointmentId);
             screeningResult.setImagePath("uploads/fundus/" + savedFilename);
             screeningResult.setNotes(notes);
+
+            // FIX: Persist model name (may have been set by Python response or form)
+            if (screeningResult.getModelName() == null || screeningResult.getModelName().trim().isEmpty()) {
+                screeningResult.setModelName(modelName);
+            }
 
             // Persist into MySQL
             int savedId = cvdDAO.saveScreening(screeningResult);
