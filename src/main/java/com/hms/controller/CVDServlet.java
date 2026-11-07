@@ -1,6 +1,5 @@
 package com.hms.controller;
 
-import com.hms.dao.AppointmentDAO;
 import com.hms.dao.CVDScreeningDAO;
 import com.hms.dao.DoctorDAO;
 import com.hms.dao.PatientDAO;
@@ -20,7 +19,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.Part;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -41,18 +39,16 @@ import java.util.UUID;
  * - Persists AI recommendation from Python response.
  */
 @WebServlet("/CVDServlet")
-@MultipartConfig(
-        fileSizeThreshold = 1024 * 1024 * 2,  // 2MB
-        maxFileSize = 1024 * 1024 * 25,        // 25MB
-        maxRequestSize = 1024 * 1024 * 50      // 50MB
+@MultipartConfig(fileSizeThreshold = 1024 * 1024 * 2, // 2MB
+        maxFileSize = 1024 * 1024 * 25, // 25MB
+        maxRequestSize = 1024 * 1024 * 50 // 50MB
 )
 public class CVDServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
 
     private static final Set<String> ALLOWED_EXTENSIONS = new HashSet<>(
-            Arrays.asList(".jpg", ".jpeg", ".png")
-    );
+            Arrays.asList(".jpg", ".jpeg", ".png"));
 
     private final CVDScreeningDAO cvdDAO = new CVDScreeningDAO();
     private final PatientDAO patientDAO = new PatientDAO();
@@ -83,7 +79,8 @@ public class CVDServlet extends HttpServlet {
             return false;
         }
         String role = user.getRole();
-        if (!"ADMIN".equalsIgnoreCase(role) && !"DOCTOR".equalsIgnoreCase(role) && !"RECEPTIONIST".equalsIgnoreCase(role)) {
+        if (!"ADMIN".equalsIgnoreCase(role) && !"DOCTOR".equalsIgnoreCase(role)
+                && !"RECEPTIONIST".equalsIgnoreCase(role)) {
             response.sendRedirect(request.getContextPath() + "/dashboard.jsp?error=forbidden");
             return false;
         }
@@ -156,16 +153,7 @@ public class CVDServlet extends HttpServlet {
     private void listScreenings(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        User user = getLoggedInUser(request);
-        List<CVDScreening> screenings;
-
-        // If logged-in user is a DOCTOR with assigned doctorId, filter screenings or show all
-        if (user != null && "DOCTOR".equalsIgnoreCase(user.getRole()) && user.getDoctorId() > 0) {
-            screenings = cvdDAO.getAllScreenings();
-        } else {
-            screenings = cvdDAO.getAllScreenings();
-        }
-
+        List<CVDScreening> screenings = cvdDAO.getAllScreenings();
         boolean isAiOnline = cvdClient.isServiceAvailable();
 
         request.setAttribute("screenings", screenings);
@@ -239,10 +227,10 @@ public class CVDServlet extends HttpServlet {
                 return;
             }
 
-            // If DOCTOR, check patient/screening authorization: doctors can only delete screenings they supervised
             if ("DOCTOR".equalsIgnoreCase(user.getRole()) && user.getDoctorId() > 0) {
                 if (screening.getDoctorId() == null || screening.getDoctorId() != user.getDoctorId()) {
-                    response.sendRedirect(request.getContextPath() + "/CVDServlet?action=list&error=unauthorized_delete");
+                    response.sendRedirect(
+                            request.getContextPath() + "/CVDServlet?action=list&error=unauthorized_delete");
                     return;
                 }
             }
@@ -255,12 +243,13 @@ public class CVDServlet extends HttpServlet {
     }
 
     /**
-     * Residual U-Net vessel segmentation. Optional: any failure is logged and the screening is kept.
+     * Vessel segmentation with selected model. Optional: any failure is logged and
+     * the screening is kept.
      */
-    private void runVesselSegmentation(int screeningId, byte[] imageBytes, String savedFilename) {
+    private void runVesselSegmentation(int screeningId, byte[] imageBytes, String savedFilename, String modelName) {
         try {
             String name = savedFilename != null ? savedFilename : "scan.jpg";
-            CVDClient.VesselResult vessels = cvdClient.segmentVessels(imageBytes, name);
+            CVDClient.VesselResult vessels = cvdClient.segmentVessels(imageBytes, name, modelName);
 
             String baseName = Paths.get(name).getFileName().toString();
             int dot = baseName.lastIndexOf('.');
@@ -270,12 +259,10 @@ public class CVDServlet extends HttpServlet {
             String overlayName = "vessel_" + baseName + ".png";
 
             String uploadPath = getServletContext().getRealPath("/uploads/fundus");
-            Path uploadDirPath;
-            if (uploadPath != null) {
-                uploadDirPath = Path.of(uploadPath);
-            } else {
-                uploadDirPath = Path.of("src", "main", "webapp", "uploads", "fundus").toAbsolutePath();
-            }
+            Path uploadDirPath = (uploadPath != null)
+                    ? Path.of(uploadPath)
+                    : Path.of("src", "main", "webapp", "uploads", "fundus").toAbsolutePath();
+
             if (!Files.exists(uploadDirPath)) {
                 Files.createDirectories(uploadDirPath);
             }
@@ -300,7 +287,6 @@ public class CVDServlet extends HttpServlet {
             }
             int patientId = Integer.parseInt(patientIdStr.trim());
 
-            // Authorization & Patient Existence check
             Patient targetPatient = patientDAO.getPatientById(patientId);
             if (targetPatient == null) {
                 response.sendRedirect(request.getContextPath() + "/CVDServlet?action=new&error=invalid_patient");
@@ -309,8 +295,8 @@ public class CVDServlet extends HttpServlet {
 
             String doctorIdStr = request.getParameter("doctorId");
             Integer doctorId = null;
-            if (currentUser != null && "DOCTOR".equalsIgnoreCase(currentUser.getRole()) && currentUser.getDoctorId() > 0) {
-                // Enforce doctor ID strictly from authenticated session to prevent doctor impersonation
+            if (currentUser != null && "DOCTOR".equalsIgnoreCase(currentUser.getRole())
+                    && currentUser.getDoctorId() > 0) {
                 doctorId = currentUser.getDoctorId();
             } else if (doctorIdStr != null && !doctorIdStr.trim().isEmpty()) {
                 doctorId = Integer.parseInt(doctorIdStr.trim());
@@ -322,15 +308,15 @@ public class CVDServlet extends HttpServlet {
 
             String appointmentIdStr = request.getParameter("appointmentId");
             Integer appointmentId = (appointmentIdStr != null && !appointmentIdStr.trim().isEmpty())
-                    ? Integer.parseInt(appointmentIdStr.trim()) : null;
+                    ? Integer.parseInt(appointmentIdStr.trim())
+                    : null;
 
             String notes = request.getParameter("notes");
             String sampleImage = request.getParameter("sampleImage");
 
-            // FIX: Read the model selection from the form
             String modelName = request.getParameter("modelName");
             if (modelName == null || modelName.trim().isEmpty()) {
-                modelName = "Residual U-Net";  // Default
+                modelName = "Residual U-Net";
             }
 
             byte[] imageBytes = null;
@@ -352,21 +338,19 @@ public class CVDServlet extends HttpServlet {
                 }
 
                 if (!ALLOWED_EXTENSIONS.contains(ext)) {
-                    response.sendRedirect(request.getContextPath() + "/CVDServlet?action=new&patientId=" + patientId + "&error=invalid_file_type");
+                    response.sendRedirect(request.getContextPath() + "/CVDServlet?action=new&patientId=" + patientId
+                            + "&error=invalid_file_type");
                     return;
                 }
 
-                // Sanitize and randomize file destination
-                savedFilename = "fundus_" + UUID.randomUUID().toString().substring(0, 8) + "_" + System.currentTimeMillis() + ext;
+                savedFilename = "fundus_" + UUID.randomUUID().toString().substring(0, 8) + "_"
+                        + System.currentTimeMillis() + ext;
 
-                // Save to webapp uploads folder using cross-platform NIO Path
                 String uploadPath = getServletContext().getRealPath("/uploads/fundus");
-                Path uploadDirPath;
-                if (uploadPath != null) {
-                    uploadDirPath = Path.of(uploadPath);
-                } else {
-                    uploadDirPath = Path.of("src", "main", "webapp", "uploads", "fundus").toAbsolutePath();
-                }
+                Path uploadDirPath = (uploadPath != null)
+                        ? Path.of(uploadPath)
+                        : Path.of("src", "main", "webapp", "uploads", "fundus").toAbsolutePath();
+
                 if (!Files.exists(uploadDirPath)) {
                     Files.createDirectories(uploadDirPath);
                 }
@@ -379,7 +363,6 @@ public class CVDServlet extends HttpServlet {
                 imageBytes = Files.readAllBytes(destinationFile);
 
             } else if (sampleImage != null && !sampleImage.trim().isEmpty()) {
-                // Sanitize sample image input against directory traversal
                 String cleanSample = Paths.get(sampleImage).getFileName().toString();
                 String sampleRealPath = getServletContext().getRealPath("/uploads/fundus/samples/" + cleanSample);
                 Path samplePath = (sampleRealPath != null) ? Path.of(sampleRealPath) : null;
@@ -395,17 +378,17 @@ public class CVDServlet extends HttpServlet {
             }
 
             if (imageBytes == null || imageBytes.length == 0) {
-                response.sendRedirect(request.getContextPath() + "/CVDServlet?action=new&patientId=" + patientId + "&error=missing_image");
+                response.sendRedirect(request.getContextPath() + "/CVDServlet?action=new&patientId=" + patientId
+                        + "&error=missing_image");
                 return;
             }
 
-            // Check if Python AI microservice is reachable
             if (!cvdClient.isServiceAvailable()) {
-                response.sendRedirect(request.getContextPath() + "/CVDServlet?action=new&patientId=" + patientId + "&error=ai_offline");
+                response.sendRedirect(request.getContextPath() + "/CVDServlet?action=new&patientId=" + patientId
+                        + "&error=ai_offline");
                 return;
             }
 
-            // Call Python AI Microservice — now with model name
             CVDScreening screeningResult;
             try {
                 screeningResult = cvdClient.analyzeImage(imageBytes,
@@ -413,30 +396,29 @@ public class CVDServlet extends HttpServlet {
                         modelName);
             } catch (IOException e) {
                 if (e.getMessage() != null && e.getMessage().contains("HTTP 400")) {
-                    response.sendRedirect(request.getContextPath() + "/CVDServlet?action=new&patientId=" + patientId + "&error=corrupt_image");
+                    response.sendRedirect(request.getContextPath() + "/CVDServlet?action=new&patientId=" + patientId
+                            + "&error=corrupt_image");
                     return;
                 }
                 throw e;
             }
 
-            // Fill metadata and author links
             screeningResult.setPatientId(patientId);
             screeningResult.setDoctorId(doctorId);
             screeningResult.setAppointmentId(appointmentId);
             screeningResult.setImagePath("uploads/fundus/" + savedFilename);
             screeningResult.setNotes(notes);
 
-            // FIX: Persist model name (may have been set by Python response or form)
             if (screeningResult.getModelName() == null || screeningResult.getModelName().trim().isEmpty()) {
                 screeningResult.setModelName(modelName);
             }
 
-            // Persist into MySQL
             int savedId = cvdDAO.saveScreening(screeningResult);
 
             if (savedId > 0) {
-                runVesselSegmentation(savedId, imageBytes, savedFilename);
-                response.sendRedirect(request.getContextPath() + "/CVDServlet?action=view&id=" + savedId + "&msg=analyzed");
+                runVesselSegmentation(savedId, imageBytes, savedFilename, modelName);
+                response.sendRedirect(
+                        request.getContextPath() + "/CVDServlet?action=view&id=" + savedId + "&msg=analyzed");
             } else {
                 response.sendRedirect(request.getContextPath() + "/CVDServlet?action=list&error=save_failed");
             }
