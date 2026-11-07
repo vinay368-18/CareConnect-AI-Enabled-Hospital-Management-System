@@ -381,6 +381,17 @@
                 </div>
             </div>
 
+            <!-- Model Selection -->
+            <div class="form-group">
+                <label for="modelName">Segmentation Model</label>
+                <select id="modelName" name="modelName">
+                    <option value="Residual U-Net" selected>Residual U-Net (Default / Recommended)</option>
+                    <option value="U-Net">U-Net (Baseline)</option>
+                    <option value="Attention U-Net">Attention U-Net</option>
+                    <option value="Compare All 3">Compare All 3</option>
+                </select>
+            </div>
+
             <!-- Notes -->
             <div class="form-group">
                 <label for="notes">Clinical Notes / Patient Symptoms</label>
