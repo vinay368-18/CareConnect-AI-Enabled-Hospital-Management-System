@@ -171,6 +171,32 @@ public class HMSSystemIntegrationTest {
             assertEquals(0.7450, result.getDrConfidence(), "DR confidence parsed");
             assertEquals("Experimental Screening - Requires Clinical Review", result.getRiskLevel(), "Risk level parsed");
             assertTrue(result.getRecommendation().contains("Experimental AI research output"), "Recommendation parsed");
+
+            // Test Task 6 nested payload contract
+            String task6Json = "{\n" +
+                    "  \"status\": \"success\",\n" +
+                    "  \"model_used\": \"Residual U-Net\",\n" +
+                    "  \"vessel_density\": 0.142,\n" +
+                    "  \"mask_overlay_url\": \"/static/masks/overlay_123.png\",\n" +
+                    "  \"cvd\": { \"probability\": 0.65, \"result\": \"Positive\" },\n" +
+                    "  \"hypertension\": { \"probability\": 0.42, \"result\": \"Negative\" },\n" +
+                    "  \"diabetic_retinopathy\": { \"grade\": 1, \"label\": \"Mild DR\", \"confidence\": 0.78 },\n" +
+                    "  \"risk_assessment\": { \"risk_level\": \"High Risk\", \"recommendation\": \"Urgent cardiology referral recommended.\" }\n" +
+                    "}";
+
+            CVDScreening result2 = (CVDScreening) parseMethod.invoke(client, task6Json);
+            assertNotNull(result2, "Parsed screening (Task 6 contract) should not be null");
+            assertEquals("Positive", result2.getCvdPrediction(), "CVD result parsed from nested contract");
+            assertEquals(0.65, result2.getCvdProbability(), "CVD probability parsed from nested contract");
+            assertEquals("Negative", result2.getHypertensionPrediction(), "HT result parsed from nested contract");
+            assertEquals(0.42, result2.getHypertensionProbability(), "HT probability parsed from nested contract");
+            assertEquals("Mild DR", result2.getDrGrade(), "DR label parsed from nested contract");
+            assertEquals(0.78, result2.getDrConfidence(), "DR confidence parsed from nested contract");
+            assertEquals("High Risk", result2.getRiskLevel(), "Risk level parsed from nested contract");
+            assertEquals("Urgent cardiology referral recommended.", result2.getRecommendation(), "Recommendation parsed from nested contract");
+            assertEquals("Residual U-Net", result2.getModelName(), "Model name parsed from nested contract");
+            assertEquals(0.142, result2.getVesselDensity(), "Vessel density parsed from nested contract");
+            assertEquals("/static/masks/overlay_123.png", result2.getVesselOverlayPath(), "Mask overlay url parsed from nested contract");
         } catch (Exception e) {
             throw new RuntimeException("CVDClient reflection error: " + e.getMessage(), e);
         }
