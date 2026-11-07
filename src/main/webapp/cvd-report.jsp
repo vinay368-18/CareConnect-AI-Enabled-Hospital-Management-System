@@ -305,7 +305,7 @@
 <body>
 
 <%
-    CVDScreening s = (CVDScreening) request.getAttribute("screening");
+    // screening 's' already declared in the header scriptlet (line 15)
     if (s != null) {
 %>
 
@@ -334,7 +334,9 @@
         <div class="report-meta">
             <div>Report ID: <strong>#CVD-<%= s.getScreeningId() %></strong></div>
             <div>Date: <%= s.getScreeningDate() != null ? s.getScreeningDate().toString().substring(0, 16) : "Recent" %></div>
-            <div style="color: #0f766e; font-weight: 600; margin-top: 4px;">MultiTask EfficientNet-B0 (v2.0.0-expB)</div>
+            <div style="color: #0f766e; font-weight: 600; margin-top: 4px;">
+                <%= s.getModelName() != null && !s.getModelName().isEmpty() ? HtmlUtil.escapeHtml(s.getModelName()) : "MultiTask EfficientNet-B0" %> (v2.0.0-expB)
+            </div>
         </div>
     </div>
 
@@ -368,7 +370,7 @@
                 <h3><%= s.getRiskLevel() != null ? s.getRiskLevel() : "Experimental Screening - Requires Clinical Review" %></h3>
                 <p><strong>Clinical Direction:</strong> <%= s.getRecommendation() != null ? s.getRecommendation() : "Experimental AI research output. Complete comprehensive cardiovascular risk assessment (BP, fasting blood sugar, lipid profile, ECG) by an attending physician is required." %></p>
                 <% if (s.getNotes() != null && !s.getNotes().trim().isEmpty()) { %>
-                    <p style="margin-top: 6px; font-style: italic; color: #334155;">Clinician Notes: <%= s.getNotes() %></p>
+                    <p style="margin-top: 6px; font-style: italic; color: #334155;">Clinician Notes: <%= HtmlUtil.escapeHtml(s.getNotes()) %></p>
                 <% } %>
             </div>
         </div>
