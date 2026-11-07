@@ -1,0 +1,30 @@
+# Data & large binary assets
+data/
+*.npy
+*.npz
+*.pt
+*.pth
+*.tar.gz
+*.zip
+
+# Image caches
+*.jpg
+*.jpeg
+*.png
+
+# Python / Jupyter artifacts
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.pytest_cache/
+.DS_Store
+
+# Virtual environments
+venv/
+env/
+.env
+
+# Keep tracking result CSVs, JSONs, and joblib models
+!results/**/*.csv
+!results/**/*.json
+!results/**/*.joblib
