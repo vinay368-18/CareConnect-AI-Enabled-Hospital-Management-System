@@ -19,12 +19,12 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from fastapi import Depends, FastAPI, File, Header, Request, UploadFile, HTTPException, Response, status
+from fastapi import Depends, FastAPI, File, Form, Header, Request, UploadFile, HTTPException, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from PIL import Image, UnidentifiedImageError
 
-from inference import RetinalPredictor
+from inference import RetinalPredictor, DR_CLASSES
 
 # Optional vessel segmentation module
 try:
@@ -245,7 +245,10 @@ def validate_image_bytes(content: bytes, filename: Optional[str] = None) -> Imag
 
 
 @app.post("/predict", dependencies=[Depends(verify_api_key), Depends(check_rate_limit)])
-async def predict_image(file: UploadFile = File(...)):
+async def predict_image(
+    file: UploadFile = File(...),
+    model_name: Optional[str] = Form("Residual U-Net"),
+):
     """
     Main prediction endpoint accepting multipart/form-data retinal fundus image.
     Never persists uploaded images permanently to disk.
@@ -262,16 +265,42 @@ async def predict_image(file: UploadFile = File(...)):
         results = PREDICTOR.predict(image)
         assessment = compute_clinical_assessment(results)
 
+        dr_grade_name = results["dr_predicted_grade"]
+        dr_grade_idx = 0
+        if dr_grade_name in DR_CLASSES:
+            dr_grade_idx = DR_CLASSES.index(dr_grade_name)
+
+        used_model = model_name or "Residual U-Net"
+
         return {
             "status": "success",
             "model_version": "2.0.0-experiment_b",
+            "model_used": used_model,
+            "cvd": {
+                "probability": results["cvd_predicted_probability"],
+                "result": results["cvd_prediction"],
+            },
+            "hypertension": {
+                "probability": results["hypertension_predicted_probability"],
+                "result": results["hypertension_prediction"],
+            },
+            "diabetic_retinopathy": {
+                "grade": dr_grade_idx,
+                "label": dr_grade_name,
+                "confidence": results["dr_confidence"],
+            },
+            "risk_assessment": {
+                "risk_level": assessment["risk_level"],
+                "recommendation": assessment["recommendation"],
+            },
+            # Flat backwards-compatibility fields
             "cvd_prediction": results["cvd_prediction"],
             "cvd_probability": results["cvd_predicted_probability"],
             "cvd_threshold": results["cvd_threshold"],
             "hypertension_prediction": results["hypertension_prediction"],
             "hypertension_probability": results["hypertension_predicted_probability"],
             "hypertension_threshold": results["hypertension_threshold"],
-            "dr_grade": results["dr_predicted_grade"],
+            "dr_grade": dr_grade_name,
             "dr_confidence": results["dr_confidence"],
             "dr_probabilities": {k: round(v, 4) for k, v in results["dr_probabilities"].items()},
             "risk_level": assessment["risk_level"],
