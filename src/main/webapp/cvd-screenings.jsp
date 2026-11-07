@@ -427,7 +427,7 @@
                             <a href="${pageContext.request.contextPath}/CVDServlet?action=view&id=<%= s.getScreeningId() %>" class="btn-view">
                                 View Report
                             </a>
-                            <form action="/CVDServlet" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this AI screening record?');">
+                            <form action="${pageContext.request.contextPath}/CVDServlet" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this AI screening record?');">
                                 <input type="hidden" name="action" value="delete">
                                 <input type="hidden" name="id" value="<%= s.getScreeningId() %>">
                                 <input type="hidden" name="csrf_token" value="<%= HtmlUtil.escapeHtml(csrfToken) %>">
