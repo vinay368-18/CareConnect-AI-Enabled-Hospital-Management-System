@@ -80,7 +80,8 @@ public class AuthenticationFilter implements Filter {
         // Static resources
         if (path.startsWith("/css/")
                 || path.startsWith("/js/")
-                || path.startsWith("/images/")) {
+                || path.startsWith("/images/")
+                || path.startsWith("/uploads/")) {
 
             return true;
         }
