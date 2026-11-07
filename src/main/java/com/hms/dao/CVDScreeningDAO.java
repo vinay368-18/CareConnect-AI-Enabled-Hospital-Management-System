@@ -7,14 +7,22 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Data Access Object for CVD Screening records.
+ *
+ * AUDIT FIX (2026-11-07):
+ * - Added model_name and recommendation columns to INSERT.
+ * - mapResultSetToScreening reads model_name and recommendation from DB;
+ *   only falls back to default recommendation if stored value is null/empty.
+ */
 public class CVDScreeningDAO {
 
     public int saveScreening(CVDScreening screening) {
         String sql = "INSERT INTO cvd_screenings "
-                   + "(patient_id, doctor_id, appointment_id, image_path, "
+                   + "(patient_id, doctor_id, appointment_id, image_path, model_name, "
                    + "cvd_prediction, cvd_probability, hypertension_prediction, hypertension_probability, "
-                   + "dr_grade, dr_confidence, risk_level, notes) "
-                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                   + "dr_grade, dr_confidence, risk_level, recommendation, notes) "
+                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         int generatedId = -1;
 
@@ -36,14 +44,16 @@ public class CVDScreeningDAO {
             }
 
             ps.setString(4, screening.getImagePath());
-            ps.setString(5, screening.getCvdPrediction());
-            ps.setDouble(6, screening.getCvdProbability());
-            ps.setString(7, screening.getHypertensionPrediction());
-            ps.setDouble(8, screening.getHypertensionProbability());
-            ps.setString(9, screening.getDrGrade());
-            ps.setDouble(10, screening.getDrConfidence());
-            ps.setString(11, screening.getRiskLevel());
-            ps.setString(12, screening.getNotes());
+            ps.setString(5, screening.getModelName());
+            ps.setString(6, screening.getCvdPrediction());
+            ps.setDouble(7, screening.getCvdProbability());
+            ps.setString(8, screening.getHypertensionPrediction());
+            ps.setDouble(9, screening.getHypertensionProbability());
+            ps.setString(10, screening.getDrGrade());
+            ps.setDouble(11, screening.getDrConfidence());
+            ps.setString(12, screening.getRiskLevel());
+            ps.setString(13, screening.getRecommendation());
+            ps.setString(14, screening.getNotes());
 
             int affected = ps.executeUpdate();
             if (affected > 0) {
@@ -221,7 +231,19 @@ public class CVDScreeningDAO {
             ps.setInt(3, screeningId);
             ps.executeUpdate();
         } catch (SQLException e) {
-            System.err.println("[CVD] Could not save vessel result (run db/add_vessel_columns.sql?): " + e.getMessage());
+            // Fallback for schema using mask_path instead of vessel_overlay_path
+            try {
+                String sqlAlt = "UPDATE cvd_screenings SET mask_path = ?, vessel_density = ? WHERE screening_id = ?";
+                try (Connection conn = DBConnection.getConnection();
+                     PreparedStatement ps = conn.prepareStatement(sqlAlt)) {
+                    ps.setString(1, overlayPath);
+                    ps.setDouble(2, densityPercent);
+                    ps.setInt(3, screeningId);
+                    ps.executeUpdate();
+                }
+            } catch (SQLException ignored) {
+                System.err.println("[CVD] Could not save vessel result (run db/cvd_screenings_schema.sql?): " + e.getMessage());
+            }
         }
     }
 
@@ -247,31 +269,105 @@ public class CVDScreeningDAO {
         }
 
         s.setImagePath(rs.getString("image_path"));
-        s.setCvdPrediction(rs.getString("cvd_prediction"));
-        s.setCvdProbability(rs.getDouble("cvd_probability"));
-        s.setHypertensionPrediction(rs.getString("hypertension_prediction"));
-        s.setHypertensionProbability(rs.getDouble("hypertension_probability"));
+
+        // cvd_prediction / cvd_result
+        try {
+            s.setCvdPrediction(rs.getString("cvd_prediction"));
+        } catch (SQLException e) {
+            try { s.setCvdPrediction(rs.getString("cvd_result")); } catch (SQLException ignored) {}
+        }
+        if (s.getCvdPrediction() == null) {
+            try { s.setCvdPrediction(rs.getString("cvd_result")); } catch (SQLException ignored) {}
+        }
+
+        // cvd_probability
+        try {
+            s.setCvdProbability(rs.getDouble("cvd_probability"));
+        } catch (SQLException ignored) {}
+
+        // hypertension_prediction / ht_result
+        try {
+            s.setHypertensionPrediction(rs.getString("hypertension_prediction"));
+        } catch (SQLException e) {
+            try { s.setHypertensionPrediction(rs.getString("ht_result")); } catch (SQLException ignored) {}
+        }
+        if (s.getHypertensionPrediction() == null) {
+            try { s.setHypertensionPrediction(rs.getString("ht_result")); } catch (SQLException ignored) {}
+        }
+
+        // hypertension_probability / ht_probability
+        try {
+            s.setHypertensionProbability(rs.getDouble("hypertension_probability"));
+        } catch (SQLException e) {
+            try { s.setHypertensionProbability(rs.getDouble("ht_probability")); } catch (SQLException ignored) {}
+        }
+
         s.setDrGrade(rs.getString("dr_grade"));
         s.setDrConfidence(rs.getDouble("dr_confidence"));
         s.setRiskLevel(rs.getString("risk_level"));
         s.setNotes(rs.getString("notes"));
-        s.setScreeningDate(rs.getTimestamp("screening_date"));
 
-        try {   // columns exist only after db/add_vessel_columns.sql has been run
-            s.setVesselOverlayPath(rs.getString("vessel_overlay_path"));
+        // screening_date / created_at
+        try {
+            s.setScreeningDate(rs.getTimestamp("screening_date"));
+        } catch (SQLException e) {
+            try { s.setScreeningDate(rs.getTimestamp("created_at")); } catch (SQLException ignored) {}
+        }
+        if (s.getScreeningDate() == null) {
+            try { s.setScreeningDate(rs.getTimestamp("created_at")); } catch (SQLException ignored) {}
+        }
+
+        // Read model_name (added in schema migration)
+        try {
+            s.setModelName(rs.getString("model_name"));
+        } catch (SQLException ignored) {
+            // Column may not exist in older schema
+        }
+
+        // Read recommendation / recommendations from DB
+        try {
+            String storedRec = rs.getString("recommendation");
+            if (storedRec != null && !storedRec.trim().isEmpty()) {
+                s.setRecommendation(storedRec);
+            } else {
+                storedRec = rs.getString("recommendations");
+                if (storedRec != null && !storedRec.trim().isEmpty()) {
+                    s.setRecommendation(storedRec);
+                }
+            }
+        } catch (SQLException ignored) {
+            try {
+                String storedRec = rs.getString("recommendations");
+                if (storedRec != null && !storedRec.trim().isEmpty()) {
+                    s.setRecommendation(storedRec);
+                }
+            } catch (SQLException ignored2) {}
+        }
+
+        // Default recommendation if none was stored
+        if (s.getRecommendation() == null || s.getRecommendation().trim().isEmpty()) {
+            if ("High Risk".equalsIgnoreCase(s.getRiskLevel())) {
+                s.setRecommendation("Immediate cardiovascular assessment recommended. Schedule ECG, lipid profile, and comprehensive cardiology consult.");
+            } else if ("Moderate Risk".equalsIgnoreCase(s.getRiskLevel())) {
+                s.setRecommendation("Elevated cardiovascular / hypertension markers detected. Recommend routine blood pressure monitoring and preventive lifestyle modifications.");
+            } else {
+                s.setRecommendation("Retinal markers within normal parameters. Continue annual preventive health check-ups.");
+            }
+        }
+
+        // Vessel segmentation columns (vessel_overlay_path or mask_path)
+        try {
+            String mask = rs.getString("vessel_overlay_path");
+            if (mask == null || mask.trim().isEmpty()) {
+                mask = rs.getString("mask_path");
+            }
+            s.setVesselOverlayPath(mask);
             double density = rs.getDouble("vessel_density");
             s.setVesselDensity(rs.wasNull() ? null : density);
         } catch (SQLException ignored) {
-            // older database layout: no vessel columns
-        }
-
-        // Default clinical recommendations based on risk
-        if ("High Risk".equalsIgnoreCase(s.getRiskLevel())) {
-            s.setRecommendation("Immediate cardiovascular assessment recommended. Schedule ECG, lipid profile, and comprehensive cardiology consult.");
-        } else if ("Moderate Risk".equalsIgnoreCase(s.getRiskLevel())) {
-            s.setRecommendation("Elevated cardiovascular / hypertension markers detected. Recommend routine blood pressure monitoring and preventive lifestyle modifications.");
-        } else {
-            s.setRecommendation("Retinal markers within normal parameters. Continue annual preventive health check-ups.");
+            try {
+                s.setVesselOverlayPath(rs.getString("mask_path"));
+            } catch (SQLException ignored2) {}
         }
 
         return s;
