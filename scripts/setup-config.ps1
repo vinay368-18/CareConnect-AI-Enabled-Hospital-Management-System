@@ -89,4 +89,4 @@ try {
 Write-Host ""
 Write-Host "Saved settings to $file"
 Write-Host "A new AI API key was generated; both services will read it from this file."
-Write-Host "Next: run.bat in the project folder starts everything."
+Write-Host "Next: .\run.bat in the project folder starts everything."

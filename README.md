@@ -36,7 +36,7 @@ stored as a screening record and shown as a printable report.
 ## Architecture
 
 The system is made of three processes. You start it with **one command**
-(`run.bat`): Tomcat runs the web application, and the web application starts the
+(`.\run.bat`): Tomcat runs the web application, and the web application starts the
 AI service itself and stops it when Tomcat stops. MySQL runs as its usual Windows
 service.
 
@@ -170,7 +170,7 @@ start_cvd_ai_service.bat  optional: same as scripts\run-ai.bat
 **Quick start** (after the one-time steps 1–3 below):
 
 ```bat
-run.bat
+.\run.bat
 ```
 
 Then open `http://localhost:8080/HospitalManagementSystem/`. One window runs
@@ -240,8 +240,8 @@ The settings:
 | `HMS_DB_URL` | Java | No | Defaults to `jdbc:mysql://localhost:3306/hospital` |
 | `HMS_AI_API_URL` | Java | No | Defaults to `http://127.0.0.1:5000` |
 | `HMS_CORS_ORIGINS` | Python | No | Defaults to `http://localhost:8080,http://127.0.0.1:8080` |
-| `HMS_AI_SERVICE_DIR` | Java | No | Folder containing `api_server.py`. `run.bat` fills this in |
-| `HMS_AI_PYTHON` | Java | No | Python used for the AI service. `run.bat` fills this in |
+| `HMS_AI_SERVICE_DIR` | Java | No | Folder containing `api_server.py`. `.\run.bat` fills this in |
+| `HMS_AI_PYTHON` | Java | No | Python used for the AI service. `.\run.bat` fills this in |
 | `HMS_AI_AUTOSTART` | Java | No | `false` stops the web app from starting the AI service. Default `true` |
 
 The equivalent Java system properties are `hms.db.url`, `hms.db.user`,
@@ -267,7 +267,7 @@ python -c "import secrets; print(secrets.token_hex(32))"
 From the project folder (Command Prompt, PowerShell or the VS Code terminal):
 
 ```bat
-run.bat
+.\run.bat
 ```
 
 In one window, it:
@@ -292,13 +292,13 @@ INFO: Server startup in [...] milliseconds
 Then open `http://localhost:8080/HospitalManagementSystem/`. **Ctrl+C** stops
 everything.
 
-`run.bat` finds Tomcat through `CATALINA_HOME`, or by searching your user folder for
+`.\run.bat` finds Tomcat through `CATALINA_HOME`, or by searching your user folder for
 `apache-tomcat-10.*`. To point at it explicitly:
-`run.bat -TomcatHome "C:\path\to\apache-tomcat-10.1.57"`. It refuses to start a
+`.\run.bat -TomcatHome "C:\path\to\apache-tomcat-10.1.57"`. It refuses to start a
 second Tomcat when port 8080 is already taken.
 
 **Using the VS Code server connector or Eclipse instead:** Tomcat started from those
-also starts the AI service, because the web app does it. Run `run.bat -NoStart` once
+also starts the AI service, because the web app does it. Run `.\run.bat -NoStart` once
 first, which sets everything up and deploys without starting Tomcat. Then start the
 server from the IDE as usual.
 
@@ -319,7 +319,7 @@ A `"degraded"` status means the prediction model did not load, which usually mea
 ### 5. Create the first admin account
 
 There is no public sign-up, and registering staff requires an existing admin, so the
-first account is created from the command line. Run `run.bat` once first (it
+first account is created from the command line. Run `.\run.bat` once first (it
 produces `build\classes`). The tool reads the database settings from
 `careconnect.env`, so no extra setup is needed:
 
@@ -472,7 +472,7 @@ feature experimental.
 
 These are honest gaps in the current version:
 
-- **No build tool.** There is no Maven or Gradle; `run.bat` and Eclipse stand in for
+- **No build tool.** There is no Maven or Gradle; `.\run.bat` and Eclipse stand in for
   one.
 - **No automated test framework.** Java tests are `main()` programs under
   `com.hms.test`; the AI service has 13 checks in `test_ai_service.py`.
@@ -497,10 +497,10 @@ These are honest gaps in the current version:
 | Login page says "Sign-in is unavailable … cannot reach its database" | Settings not found, wrong password, or MySQL not running | Run `scripts\setup-config.bat`; read the `[DBConnection]` line in the Tomcat log, which lists the paths searched |
 | Badge shows "AI Offline" | Service not running, or `/health` reports `degraded` (weights missing) | `curl http://127.0.0.1:5000/health` |
 | Every AI request returns 401 | An environment variable overrides the shared key on one side only | Remove the stray `HMS_AI_API_KEY` variable, or set it identically for both |
-| Every AI request returns 503 | No API key configured for the Python service | Run `scripts\setup-config.bat`, then `run.bat` again |
-| `[AI Service] Exited early with code …` | Missing Python packages, port 5000 in use, or missing model files | Read the Python lines just above it; `run.bat` reinstalls missing packages |
-| `[AI Service] Not started: could not find the cvd-ai-service folder` | Tomcat was started without running `run.bat` first | Run `run.bat -NoStart` once; it records the folder in `careconnect.env` |
-| `ERROR: Port 8080 is already in use` | Another Tomcat is running, for example the VS Code connector's | Stop it, or use `run.bat -NoStart` to redeploy into it |
+| Every AI request returns 503 | No API key configured for the Python service | Run `scripts\setup-config.bat`, then `.\run.bat` again |
+| `[AI Service] Exited early with code …` | Missing Python packages, port 5000 in use, or missing model files | Read the Python lines just above it; `.\run.bat` reinstalls missing packages |
+| `[AI Service] Not started: could not find the cvd-ai-service folder` | Tomcat was started without running `.\run.bat` first | Run `.\run.bat -NoStart` once; it records the folder in `careconnect.env` |
+| `ERROR: Port 8080 is already in use` | Another Tomcat is running, for example the VS Code connector's | Stop it, or use `.\run.bat -NoStart` to redeploy into it |
 | `?error=save_failed` after an analysis | `cvd_screenings` is missing columns | Re-run `db/cvd_screenings_schema.sql` (it adds them) |
 | "Something went wrong" (500) page | An unexpected server error | The cause is in the Tomcat console or `logs\catalina.*.log` |
 | All servlets 404 after deploy | Running on Tomcat 9 or earlier | Use Tomcat 10.1+ (Jakarta namespace) |

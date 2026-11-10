@@ -3,7 +3,7 @@
     Runs the whole CareConnect system with one command: web app + AI service on Tomcat.
 
 .DESCRIPTION
-    Usually started from the project folder with:  run.bat
+    Usually started from the project folder with:  .\run.bat
 
       1. makes sure the settings file exists (%USERPROFILE%\.careconnect\careconnect.env);
          runs the one-time setup if it does not
@@ -29,9 +29,9 @@
     Don't check or install the AI service's Python packages.
 
 .EXAMPLE
-    run.bat
-    run.bat -NoStart
-    run.bat -TomcatHome "C:\tools\apache-tomcat-10.1.57"
+    .\run.bat
+    .\run.bat -NoStart
+    .\run.bat -TomcatHome "C:\tools\apache-tomcat-10.1.57"
 #>
 [CmdletBinding()]
 param(
@@ -241,7 +241,7 @@ try {
 } catch { $inUse = $false }
 if ($inUse) {
     Fail ("Port 8080 is already in use - another Tomcat is probably running (for example from the " +
-          "VS Code Servers panel). Stop it and run again, or use  run.bat -NoStart  to redeploy into it.")
+          "VS Code Servers panel). Stop it and run again, or use  .\run.bat -NoStart  to redeploy into it.")
 }
 
 Write-Host ""
