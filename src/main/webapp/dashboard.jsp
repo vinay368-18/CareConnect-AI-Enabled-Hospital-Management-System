@@ -1052,11 +1052,9 @@
                                                                                 !recentCvdScreenings.isEmpty()) { for
                                                                                 (CVDScreening cvdItem :
                                                                                 recentCvdScreenings) { String
-                                                                                cvdRiskClass="completed" ; if ("High
-                                                                                Risk".equalsIgnoreCase(cvdItem.getRiskLevel()))
+                                                                                cvdRiskClass="completed" ; if ("High Risk".equalsIgnoreCase(cvdItem.getRiskLevel()))
                                                                                 { cvdRiskClass="cancelled" ; } else if
-                                                                                ("Moderate
-                                                                                Risk".equalsIgnoreCase(cvdItem.getRiskLevel()))
+                                                                                ("Moderate Risk".equalsIgnoreCase(cvdItem.getRiskLevel()))
                                                                                 { cvdRiskClass="scheduled" ; } %>
 
                                                                                 <tr>
