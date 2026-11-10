@@ -444,5 +444,8 @@ def segment_vessels(file: UploadFile = File(...)):
 
 if __name__ == "__main__":
     import uvicorn
+    from urllib.parse import urlparse
+    # Listen on the port the web application calls (HMS_AI_API_URL), default 5000.
+    _port = urlparse(os.environ.get("HMS_AI_API_URL", "http://127.0.0.1:5000")).port or 5000
     # Enforce binding strictly to localhost (127.0.0.1)
-    uvicorn.run(app, host="127.0.0.1", port=5000)
+    uvicorn.run(app, host="127.0.0.1", port=_port)

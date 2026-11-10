@@ -11,6 +11,11 @@
     <welcome-file>login.jsp</welcome-file>
   </welcome-file-list>
 
+  <!-- Starts the Python AI service with the application and stops it on shutdown -->
+  <listener>
+    <listener-class>com.hms.service.AiServiceLauncher</listener-class>
+  </listener>
+
   <!-- Centralized Authentication Filter -->
   <filter>
     <filter-name>AuthenticationFilter</filter-name>

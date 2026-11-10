@@ -40,6 +40,7 @@ public class CVDClient {
             synchronized (this) {
                 if (httpClient == null) {
                     httpClient = HttpClient.newBuilder()
+                            .version(HttpClient.Version.HTTP_1_1) // uvicorn warns on HTTP/2 upgrade attempts
                             .connectTimeout(Duration.ofSeconds(15))
                             .build();
                 }
