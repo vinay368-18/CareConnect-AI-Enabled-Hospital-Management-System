@@ -65,14 +65,20 @@ HMS_AI_API_URL=http://127.0.0.1:5000
 HMS_AI_API_KEY=$apiKey
 "@
 
+# A previous run restricted the file's permissions; restore defaults first so it
+# can be replaced. (We own the file, so resetting its ACL is always allowed.)
+if (Test-Path $file) {
+    icacls $file /reset | Out-Null
+}
+
 # UTF-8 without BOM, so every reader parses the first line cleanly
 [System.IO.File]::WriteAllText($file, $content, (New-Object System.Text.UTF8Encoding($false)))
 
-# Restrict the file to the current user
-try {
-    icacls $file /inheritance:r /grant:r "$($env:USERNAME):(R,W)" "SYSTEM:(R)" | Out-Null
-} catch {
-    Write-Warning "Could not restrict file permissions: $($_.Exception.Message)"
+# Restrict the file to the current user (full control, so later runs can
+# overwrite it) plus read access for SYSTEM, in case Tomcat runs as a service.
+icacls $file /inheritance:r /grant:r "$($env:USERNAME):(F)" "SYSTEM:(R)" | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    Write-Warning "Could not restrict the file's permissions (icacls exit code $LASTEXITCODE). The settings were saved anyway."
 }
 
 Write-Host ""
