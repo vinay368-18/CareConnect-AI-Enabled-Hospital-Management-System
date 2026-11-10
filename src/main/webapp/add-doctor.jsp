@@ -9,7 +9,7 @@
         return;
     }
     if (!"ADMIN".equalsIgnoreCase(u.getRole())) {
-        response.sendRedirect(request.getContextPath() + "/dashboard.jsp?error=unauthorized");
+        response.sendRedirect(request.getContextPath() + "/DoctorServlet?action=list&error=unauthorized");
         return;
     }
     String csrfToken = CSRFUtil.getToken(session);

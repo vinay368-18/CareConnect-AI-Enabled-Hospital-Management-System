@@ -7,7 +7,7 @@
 
                         <% User u=(session !=null) ? (User) session.getAttribute("user") : null; if (u==null) {
                             response.sendRedirect(request.getContextPath() + "/login.jsp?error=unauthorized" ); return;
-                            } String csrfToken=CSRFUtil.getToken(session); %>
+                            } String csrfToken=CSRFUtil.getToken(session); boolean isAdmin="ADMIN".equalsIgnoreCase(u.getRole()); %>
 
                             <!DOCTYPE html>
                             <html>
@@ -205,11 +205,13 @@
                                                 ❤️ CVD Diagnostics
                                             </a>
 
+                                            <% if (isAdmin) { %>
                                             <a href="${pageContext.request.contextPath}/add-doctor.jsp" class="add-btn">
 
                                                 + Add Doctor
 
                                             </a>
+                                            <% } %>
 
                                         </div>
 
@@ -230,6 +232,14 @@
 
                                                     Invalid doctor information.
 
+                                                    <% } else if ("unauthorized".equals(error)) { %>
+                                                    Only administrators can add, edit or delete doctors.
+                                                    <% } else if ("csrf".equals(error)) { %>
+                                                    The form expired. Please try again.
+                                                    <% } else if ("method_not_allowed".equals(error)) { %>
+                                                    That action is not allowed.
+                                                    <% } else { %>
+                                                    Something went wrong. Please try again.
                                                     <% } %>
 
                                         </div>
@@ -339,6 +349,7 @@
 
                                                                     <td>
 
+                                                                        <% if (isAdmin) { %>
                                                                         <a href="${pageContext.request.contextPath}/DoctorServlet?action=edit&id=<%= doctor.getId() %>"
                                                                             class="edit-btn">
 
@@ -359,6 +370,9 @@
                                                                             <button type="submit" class="delete-btn"
                                                                                 style="background:none;border:none;cursor:pointer;font:inherit;">Delete</button>
                                                                         </form>
+                                                                        <% } else { %>
+                                                                        <span style="color:#64748b;">View only</span>
+                                                                        <% } %>
 
                                                                     </td>
 

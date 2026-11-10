@@ -1180,7 +1180,8 @@
                                                                     </a>
 
 
-                                                                    <a href="${pageContext.request.contextPath}/add-doctor.jsp"
+                                                                    <% if (currentUserObj != null && "ADMIN".equalsIgnoreCase(currentUserObj.getRole())) { %>
+                                                                <a href="${pageContext.request.contextPath}/add-doctor.jsp"
                                                                         class="action">
 
                                                                         <div class="action-icon">
@@ -1196,6 +1197,7 @@
                                                                         </span>
 
                                                                     </a>
+                                                                <% } %>
 
 
                                                                     <a href="${pageContext.request.contextPath}/add-appointment.jsp"

@@ -8,7 +8,7 @@
 
                         <% User u=(session !=null) ? (User) session.getAttribute("user") : null; if (u==null) {
                             response.sendRedirect(request.getContextPath() + "/login.jsp?error=unauthorized" ); return;
-                            } String csrfToken=CSRFUtil.getToken(session); %>
+                            } String csrfToken=CSRFUtil.getToken(session); boolean isAdmin="ADMIN".equalsIgnoreCase(u.getRole()); %>
 
                             <!DOCTYPE html>
                             <html lang="en">
@@ -299,6 +299,14 @@
                                                 Unable to delete patient. Please try again.
                                                 <% } else if ("invalid".equals(error)) { %>
                                                     Invalid patient details provided.
+                                                    <% } else if ("unauthorized".equals(error)) { %>
+                                                    Only administrators can delete patients.
+                                                    <% } else if ("csrf".equals(error)) { %>
+                                                    The form expired. Please try again.
+                                                    <% } else if ("method_not_allowed".equals(error)) { %>
+                                                    That action is not allowed.
+                                                    <% } else { %>
+                                                    Something went wrong. Please try again.
                                                     <% } %>
                                         </div>
                                         <% } %>
@@ -402,6 +410,7 @@
                                                                                 Edit
                                                                             </a>
 
+                                                                            <% if (isAdmin) { %>
                                                                             <form
                                                                                 action="${pageContext.request.contextPath}/PatientServlet"
                                                                                 method="post" style="display:inline;"
@@ -415,6 +424,7 @@
                                                                                 <button type="submit" class="delete-btn"
                                                                                     style="background:none;border:none;cursor:pointer;font:inherit;">Delete</button>
                                                                             </form>
+                                                                            <% } %>
 
                                                                         </div>
 
