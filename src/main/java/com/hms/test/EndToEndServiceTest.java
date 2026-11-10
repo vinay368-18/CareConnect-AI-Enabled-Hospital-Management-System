@@ -22,7 +22,11 @@ public class EndToEndServiceTest {
         System.out.println(" CARECONNECT HMS: END-TO-END LIVE SERVICE TEST");
         System.out.println("=========================================================");
 
-        CVDClient client = new CVDClient("http://127.0.0.1:5000");
+        String apiKey = System.getenv("HMS_AI_API_KEY");
+        if (apiKey == null || apiKey.trim().isEmpty()) {
+            apiKey = System.getProperty("hms.ai.api.key", "careconnect_shared_secret_2026");
+        }
+        CVDClient client = new CVDClient("http://127.0.0.1:5000", apiKey);
 
         System.out.print("[E2E] Checking AI Microservice /health ... ");
         boolean available = client.isServiceAvailable();
