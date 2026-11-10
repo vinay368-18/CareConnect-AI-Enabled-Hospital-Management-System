@@ -16,6 +16,11 @@
     <listener-class>com.hms.service.AiServiceLauncher</listener-class>
   </listener>
 
+  <!-- Releases the MySQL driver on shutdown/redeploy (prevents a class-loader leak) -->
+  <listener>
+    <listener-class>com.hms.util.JdbcCleanupListener</listener-class>
+  </listener>
+
   <!-- Centralized Authentication Filter -->
   <filter>
     <filter-name>AuthenticationFilter</filter-name>
