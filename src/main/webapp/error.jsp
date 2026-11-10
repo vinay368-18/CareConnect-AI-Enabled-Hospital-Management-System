@@ -1,5 +1,5 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
-    pageEncoding="UTF-8" isErrorPage="true"%>
+    pageEncoding="UTF-8" isErrorPage="true" session="false"%>
 <%
     // Mapped in web.xml for 403, 404 and 500. Shows a plain explanation and a
     // way back; never prints exception details or stack traces to the browser.
@@ -20,7 +20,8 @@
                 + "If it keeps happening, an administrator can find the cause in the server log.";
     }
 
-    boolean loggedIn = (session != null && session.getAttribute("user") != null);
+    jakarta.servlet.http.HttpSession existing = request.getSession(false);
+    boolean loggedIn = (existing != null && existing.getAttribute("user") != null);
     String ctx = request.getContextPath();
     String backHref = loggedIn ? ctx + "/dashboard.jsp" : ctx + "/login.jsp";
     String backLabel = loggedIn ? "Back to dashboard" : "Go to sign in";

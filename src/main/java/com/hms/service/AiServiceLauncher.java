@@ -179,7 +179,9 @@ public class AiServiceLauncher implements ServletContextListener {
     /** True when something answers 200 on /health (healthy or degraded). */
     private static boolean isUp(String baseUrl) {
         try {
-            HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build();
+            HttpClient client = HttpClient.newBuilder()
+                    .version(HttpClient.Version.HTTP_1_1)   // uvicorn logs a warning for HTTP/2 upgrade attempts
+                    .connectTimeout(Duration.ofSeconds(2)).build();
             HttpRequest req = HttpRequest.newBuilder(URI.create(stripSlash(baseUrl) + "/health"))
                     .timeout(Duration.ofSeconds(3)).GET().build();
             HttpResponse<Void> resp = client.send(req, HttpResponse.BodyHandlers.discarding());
