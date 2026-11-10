@@ -8,3 +8,9 @@ matplotlib==3.11.2
 gradio==6.29.0
 pandas==3.0.6
 opencv-python-headless>=4.9   # CLAHE for the Residual U-Net vessel segmentation
+
+# REST microservice (api_server.py) - required by the web application
+fastapi
+uvicorn
+pydantic
+python-multipart

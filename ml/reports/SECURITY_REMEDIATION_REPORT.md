@@ -17,7 +17,7 @@ All critical vulnerabilities have been remediated in place without rewriting the
 | Vulnerability Area | Baseline State (Pre-Remediation) | Remediated State (Post-Remediation) | Status |
 | :--- | :--- | :--- | :--- |
 | **Password Storage** | Plaintext SQL equality checks (`WHERE username=? AND password=?`) | Standard PBKDF2WithHmacSHA256 (210,000 iterations, 16-byte cryptographically secure salt, 256-bit key) with automatic on-login migration | **REMEDIATED** |
-| **Database Credentials** | Hardcoded `root / Vinay@368` in `DBConnection.java` | Externalized to environment variables (`HMS_DB_URL`, `HMS_DB_USER`, `HMS_DB_PASSWORD`) or system properties with safe startup validation | **REMEDIATED** |
+| **Database Credentials** | Hardcoded `root / [redacted]` in `DBConnection.java` | Externalized to environment variables (`HMS_DB_URL`, `HMS_DB_USER`, `HMS_DB_PASSWORD`) or system properties with safe startup validation | **REMEDIATED** |
 | **Admin Credentials** | Hardcoded `admin / admin123` displayed publicly in `forgot-password.jsp` | Removed default credentials; established secure CLI/programmatic provisioning utility (`AdminProvisioner`) | **REMEDIATED** |
 | **Access Control** | Unauthenticated direct access to JSPs, Servlets, and Patient/Report data | Centralized `AuthenticationFilter` denying by default; server-side role verification across all servlets and JSPs | **REMEDIATED** |
 | **Staff Registration** | Public unauthenticated registration allowing self-assigned roles (`ADMIN`, `DOCTOR`, etc.) | Gated strictly to authenticated `ADMIN` users; strict username regex, role whitelist, and minimum password complexity | **REMEDIATED** |
@@ -41,7 +41,7 @@ All critical vulnerabilities have been remediated in place without rewriting the
   - Updated `LoginServlet` to provide generic authentication error messages (`Invalid username or password`) regardless of whether the account exists or the password failed.
 
 ### 2.2 Critical Issue: Hardcoded Database Credentials
-- **Vulnerability:** `src/main/java/com/hms/util/DBConnection.java` contained hardcoded production credentials (`root` / `Vinay@368`) and hardcoded database URL `jdbc:mysql://localhost:3306/hospital_db`.
+- **Vulnerability:** `src/main/java/com/hms/util/DBConnection.java` contained hardcoded production credentials (`root` / `[redacted]`) and hardcoded database URL `jdbc:mysql://localhost:3306/hospital_db`.
 - **Remediation Implementation:**
   - Removed all hardcoded credentials from Java source files.
   - Implemented prioritized configuration resolution:
@@ -245,7 +245,7 @@ If initializing a fresh installation or recovering administrator access, run `Ad
 
 ### 6.1 Exposed Credential Remediation
 The audit identified that the following credentials were previously exposed in source code and web files:
-1. `Vinay@368` (MySQL root password in `DBConnection.java`)
+1. `[redacted]` (MySQL root password in `DBConnection.java`)
 2. `admin123` (Admin account password in `forgot-password.jsp`)
 
 ### 6.2 Rotation Checklist for MySQL Database

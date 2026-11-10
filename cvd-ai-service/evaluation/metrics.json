@@ -1,10 +1,13 @@
 {
+  "_source_of_truth_note": "Regenerated from ml/metrics/experiment_b_efficientnet_b0_metrics.json (Experiment B, EfficientNet-B0), which is the checkpoint served at runtime via cvd-ai-service/config.json. The superseded baseline evaluation is kept at evaluation/metrics_baseline_backup.json for reference only.",
+  "model_run": "experiment_b_efficientnet_b0",
+  "serving_checkpoint": "models/best_model.pt",
   "dataset": "mBRSET (Mobile Brazilian Retinal Dataset)",
-  "evaluation_date": "2026-10-02",
+  "evaluation_date": "2026-11-10",
   "held_out_evaluation": {
-    "split_type": "Patient-level stratified held-out test split (15% of patients, zero patient leakage)",
+    "split_type": "Patient-level stratified held-out test split, zero patient leakage",
     "n_test_patients": 191,
-    "n_test_images": 593,
+    "n_test_images": 578,
     "conditions": {
       "hypertension": {
         "condition_name": "Systemic Hypertension (HT)",
@@ -12,150 +15,127 @@
         "n_samples": 191,
         "n_positives": 135,
         "prevalence": 0.7068,
-        "roc_auc": 0.4577,
-        "roc_auc_ci_95": [0.3633, 0.5496],
-        "pr_auc": 0.6715,
-        "pr_auc_ci_95": [0.5886, 0.7699],
-        "brier_score": 0.2415,
-        "threshold": 0.5165,
-        "threshold_source": "Youden's J statistic optimized on mBRSET validation split (n=190 patients)",
-        "sensitivity": 0.6148,
-        "specificity": 0.3571,
-        "precision": 0.6975,
-        "recall": 0.6148,
-        "f1_score": 0.6535,
+        "roc_auc": 0.4679,
+        "roc_auc_ci_95": [
+          0.3705,
+          0.5655
+        ],
+        "pr_auc": 0.6908,
+        "pr_auc_ci_95": [
+          0.6075,
+          0.7801
+        ],
+        "brier_score": 0.2633,
+        "threshold": 0.4288,
+        "threshold_source": "Youden's J statistic optimized on mBRSET validation partition (n=190 patients), frozen before test evaluation",
+        "accuracy": 0.623,
+        "sensitivity": 0.7778,
+        "specificity": 0.25,
+        "precision": 0.7143,
+        "recall": 0.7778,
+        "f1_score": 0.7447,
         "confusion_matrix": {
-          "tn": 20,
-          "fp": 36,
-          "fn": 52,
-          "tp": 83
-        }
+          "tn": 14,
+          "fp": 42,
+          "fn": 30,
+          "tp": 105
+        },
+        "reliability_note": "Not usable: ROC-AUC is below 0.5 and its 95% confidence interval includes chance."
       },
       "cardiovascular_disease": {
-        "condition_name": "Cardiovascular Disease (CVD)",
+        "condition_name": "Cardiovascular Disease (Vascular Disease)",
         "target_level": "Patient-level (mean pooling across images)",
         "n_samples": 191,
-        "n_positives": 42,
-        "prevalence": 0.2199,
-        "roc_auc": 0.5633,
-        "roc_auc_ci_95": [0.4705, 0.6620],
-        "pr_auc": 0.2447,
-        "pr_auc_ci_95": [0.1754, 0.3536],
-        "brier_score": 0.1994,
-        "threshold": 0.3238,
-        "threshold_source": "Youden's J statistic optimized on mBRSET validation split (n=190 patients)",
-        "sensitivity": 0.9524,
-        "specificity": 0.0537,
-        "precision": 0.2210,
-        "recall": 0.9524,
-        "f1_score": 0.3587,
+        "n_positives": 32,
+        "prevalence": 0.1675,
+        "roc_auc": 0.5202,
+        "roc_auc_ci_95": [
+          0.3936,
+          0.6416
+        ],
+        "pr_auc": 0.2043,
+        "pr_auc_ci_95": [
+          0.1311,
+          0.3383
+        ],
+        "brier_score": 0.2609,
+        "threshold": 0.4996,
+        "threshold_source": "Youden's J statistic optimized on mBRSET validation partition (n=190 patients), frozen before test evaluation",
+        "accuracy": 0.445,
+        "sensitivity": 0.5625,
+        "specificity": 0.4214,
+        "precision": 0.1636,
+        "recall": 0.5625,
+        "f1_score": 0.2535,
         "confusion_matrix": {
-          "tn": 8,
-          "fp": 141,
-          "fn": 2,
-          "tp": 40
+          "tn": 67,
+          "fp": 92,
+          "fn": 14,
+          "tp": 18
         },
-        "reliability_note": "Low reliability: image-only discriminative performance is near chance level (~0.56 AUC in held-out test cohort)."
+        "image_level_roc_auc": 0.5232,
+        "image_level_roc_auc_ci_95": [
+          0.4588,
+          0.5884
+        ],
+        "reliability_note": "Low reliability: image-only discriminative performance is indistinguishable from chance (ROC-AUC 0.5202, 95% CI [0.3936, 0.6416] includes 0.5)."
       },
       "diabetic_retinopathy": {
         "condition_name": "Diabetic Retinopathy (ICDR Grade 0-4)",
         "target_level": "Image-level classification (5 grades)",
-        "n_samples": 593,
-        "classes": ["No DR", "Mild", "Moderate", "Severe", "Proliferative"],
-        "accuracy": 0.7352,
-        "macro_f1": 0.1880,
-        "weighted_f1": 0.6561,
+        "n_samples": 578,
+        "classes": [
+          "No DR",
+          "Mild",
+          "Moderate",
+          "Severe",
+          "Proliferative"
+        ],
+        "accuracy": 0.7699,
+        "macro_f1": 0.289,
+        "weighted_f1": 0.6918,
+        "confusion_matrix": [
+          [
+            427,
+            0,
+            2,
+            0,
+            2
+          ],
+          [
+            32,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            58,
+            0,
+            3,
+            0,
+            8
+          ],
+          [
+            7,
+            0,
+            2,
+            0,
+            9
+          ],
+          [
+            11,
+            0,
+            2,
+            0,
+            15
+          ]
+        ],
         "roc_auc": "Not available",
         "pr_auc": "Not available",
-        "brier_score": "Not available"
+        "brier_score": "Not available",
+        "reliability_note": "Best-performing head, but macro F1 of 0.289 shows the rare grades (Mild, Severe) are essentially never predicted correctly; accuracy is carried by the dominant No DR class."
       }
-    }
-  },
-  "sanity_check_selected_images": [
-    {
-      "image_id": "1034.3.jpg",
-      "patient_id": "1034",
-      "ground_truth": {
-        "HT": "Positive (HT=1)",
-        "CVD": "Positive (CVD=1)",
-        "DR": "No DR (Grade 0)"
-      },
-      "predicted": {
-        "HT": "Positive (p=0.532)",
-        "CVD": "Positive (p=0.365)",
-        "DR": "No DR (p=0.481)"
-      },
-      "correct": {
-        "HT": "Yes",
-        "CVD": "Yes",
-        "DR": "Yes"
-      }
-    },
-    {
-      "image_id": "1010.4.jpg",
-      "patient_id": "1010",
-      "ground_truth": {
-        "HT": "Negative (HT=0)",
-        "CVD": "Negative (CVD=0)",
-        "DR": "No DR (Grade 0)"
-      },
-      "predicted": {
-        "HT": "Negative (p=0.512)",
-        "CVD": "Negative (p=0.319)",
-        "DR": "No DR (p=0.470)"
-      },
-      "correct": {
-        "HT": "Yes",
-        "CVD": "Yes",
-        "DR": "Yes"
-      }
-    },
-    {
-      "image_id": "1014.3.jpg",
-      "patient_id": "1014",
-      "ground_truth": {
-        "HT": "Positive (HT=1)",
-        "CVD": "Negative (CVD=0)",
-        "DR": "Moderate (Grade 2)"
-      },
-      "predicted": {
-        "HT": "Positive (p=0.537)",
-        "CVD": "Positive (p=0.432)",
-        "DR": "Mild (p=0.354)"
-      },
-      "correct": {
-        "HT": "Yes",
-        "CVD": "No",
-        "DR": "No"
-      }
-    },
-    {
-      "image_id": "1010.1.jpg",
-      "patient_id": "1010",
-      "ground_truth": {
-        "HT": "Negative (HT=0)",
-        "CVD": "Negative (CVD=0)",
-        "DR": "No DR (Grade 0)"
-      },
-      "predicted": {
-        "HT": "Negative (p=0.483)",
-        "CVD": "Positive (p=0.347)",
-        "DR": "No DR (p=0.473)"
-      },
-      "correct": {
-        "HT": "Yes",
-        "CVD": "No",
-        "DR": "Yes"
-      }
-    }
-  ],
-  "sanity_check_summary": {
-    "sample_size": 4,
-    "description": "Anecdotal check on 4 selected images; not an accuracy estimate",
-    "correct_counts": {
-      "hypertension": "4 of 4",
-      "cardiovascular_disease": "2 of 4",
-      "diabetic_retinopathy": "2 of 4"
     }
   }
 }

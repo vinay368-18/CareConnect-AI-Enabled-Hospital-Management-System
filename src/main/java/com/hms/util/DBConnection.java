@@ -15,7 +15,6 @@ public class DBConnection {
     private static final String PROP_PASSWORD = "hms.db.password";
 
     private static final String DEFAULT_URL = "jdbc:mysql://localhost:3306/hospital";
-    private static final String FALLBACK_PASSWORD = "Vinay@368";
 
     static {
         try {
@@ -72,12 +71,6 @@ public class DBConnection {
         try {
             return DriverManager.getConnection(url, user, pass);
         } catch (SQLException e) {
-            if ((pass == null || pass.isEmpty()) && "root".equals(user)) {
-                try {
-                    return DriverManager.getConnection(url, user, FALLBACK_PASSWORD);
-                } catch (SQLException ignored) {
-                }
-            }
             System.err.println("[DBConnection] Failed to connect to database: " + e.getMessage());
             return null;
         }

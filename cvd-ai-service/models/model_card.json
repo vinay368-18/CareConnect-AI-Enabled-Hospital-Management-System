@@ -1,7 +1,7 @@
 {
   "model_name": "MultiTaskEfficientNetB0 - Retinal Microvascular Risk Assessment",
-  "version": "1.0.0",
-  "date": "2026-10-02",
+  "version": "2.0.0-experiment_b",
+  "date": "2026-11-10",
   "framework": "PyTorch (torchvision)",
   "backbone": "EfficientNet-B0 (pretrained=False at inference load time to ensure offline independence)",
   "input_modality": "Single RGB retinal fundus photograph (normalized to 224x224)",
@@ -10,13 +10,15 @@
       "head": "cvd",
       "target": "Cardiovascular Disease (vascular disease or myocardial infarction history)",
       "type": "Binary classification (sigmoid output)",
-      "threshold": 0.3238
+      "threshold": 0.4996,
+      "threshold_source": "Youden's J statistic optimized on mBRSET validation partition (n=190 patients), frozen before test evaluation"
     },
     {
       "head": "hypertension",
       "target": "Systemic Hypertension history",
       "type": "Binary classification (sigmoid output)",
-      "threshold": 0.5165
+      "threshold": 0.4288,
+      "threshold_source": "Youden's J statistic optimized on mBRSET validation partition (n=190 patients), frozen before test evaluation"
     },
     {
       "head": "dr",
@@ -37,8 +39,39 @@
     "Retinal finding vs diagnosis: Diabetic Retinopathy grade is a microvascular retinal finding, not a systemic diagnosis of diabetes.",
     "No numeric blood pressure: the dataset provides binary hypertension history, not continuous systolic/diastolic values.",
     "Historical target: CVD labels reflect self/clinician-reported history of vascular disease or myocardial infarction, not prospective 5- or 10-year incident risk.",
-    "Low CVD discriminative performance: image-only CVD prediction is near chance level (~0.56 ROC-AUC in held-out test split).",
-    "Domain specificity: images were acquired with handheld Phelcom Eyer cameras; generalizability to desktop fundus cameras (e.g., Topcon, Canon, Zeiss) is unverified and likely subject to domain shift."
+    "Near-chance CVD discrimination: image-only CVD prediction scored ROC-AUC 0.5202 on the held-out test split, with a 95% confidence interval [0.3936, 0.6416] that includes chance.",
+    "Domain specificity: images were acquired with handheld Phelcom Eyer cameras; generalizability to desktop fundus cameras (e.g., Topcon, Canon, Zeiss) is unverified and likely subject to domain shift.",
+    "Hypertension head is not usable: held-out ROC-AUC 0.4679 (95% CI [0.3705, 0.5655]), below chance.",
+    "Diabetic Retinopathy macro F1 is 0.289: minority ICDR grades are rarely predicted correctly despite 76.99% overall accuracy."
   ],
-  "intended_use": "Investigational academic research prototype for biomedical microvascular hypothesis generation. Strictly not for clinical diagnosis, patient triage, or medical decision-making."
+  "intended_use": "Investigational academic research prototype for biomedical microvascular hypothesis generation. Strictly not for clinical diagnosis, patient triage, or medical decision-making.",
+  "_source_of_truth_note": "Thresholds and metrics regenerated from ml/metrics/experiment_b_efficientnet_b0_metrics.json and kept consistent with cvd-ai-service/config.json. The superseded baseline card is at models/model_card_baseline_backup.json.",
+  "serving_checkpoint": "models/best_model.pt (Experiment B; models/best_model_baseline_backup.pt is the superseded baseline)",
+  "held_out_test_performance": {
+    "n_test_patients": 191,
+    "n_test_images": 578,
+    "cardiovascular_disease": {
+      "roc_auc": 0.5202,
+      "roc_auc_ci_95": [
+        0.3936,
+        0.6416
+      ],
+      "sensitivity": 0.5625,
+      "specificity": 0.4214
+    },
+    "systemic_hypertension": {
+      "roc_auc": 0.4679,
+      "roc_auc_ci_95": [
+        0.3705,
+        0.5655
+      ],
+      "sensitivity": 0.7778,
+      "specificity": 0.25
+    },
+    "diabetic_retinopathy": {
+      "accuracy": 0.7699,
+      "weighted_f1": 0.6918,
+      "macro_f1": 0.289
+    }
+  }
 }
