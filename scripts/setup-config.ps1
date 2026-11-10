@@ -65,8 +65,11 @@ HMS_AI_API_URL=http://127.0.0.1:5000
 HMS_AI_API_KEY=$apiKey
 "@
 
-# A previous run restricted the file's permissions; restore defaults first so it
-# can be replaced. (We own the file, so resetting its ACL is always allowed.)
+# Earlier versions of this script replaced the file's permissions, which on
+# some machines left it unreadable even for its owner. Restore the normal
+# inherited permissions. The file lives in the user's profile folder, which
+# Windows already restricts to that user, SYSTEM and administrators, so no
+# extra permission changes are needed. (Owners may always reset their ACL.)
 if (Test-Path $file) {
     icacls $file /reset | Out-Null
 }
@@ -74,11 +77,13 @@ if (Test-Path $file) {
 # UTF-8 without BOM, so every reader parses the first line cleanly
 [System.IO.File]::WriteAllText($file, $content, (New-Object System.Text.UTF8Encoding($false)))
 
-# Restrict the file to the current user (full control, so later runs can
-# overwrite it) plus read access for SYSTEM, in case Tomcat runs as a service.
-icacls $file /inheritance:r /grant:r "$($env:USERNAME):(F)" "SYSTEM:(R)" | Out-Null
-if ($LASTEXITCODE -ne 0) {
-    Write-Warning "Could not restrict the file's permissions (icacls exit code $LASTEXITCODE). The settings were saved anyway."
+# Confirm the file can be read back, since both services must read it
+try {
+    $null = [System.IO.File]::ReadAllText($file)
+} catch {
+    Write-Host "ERROR: the settings were saved but cannot be read back: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "Run:  icacls `"$file`" /reset" -ForegroundColor Red
+    exit 1
 }
 
 Write-Host ""
