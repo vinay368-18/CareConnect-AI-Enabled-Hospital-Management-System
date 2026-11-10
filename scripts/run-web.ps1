@@ -58,9 +58,30 @@ if (-not $TomcatHome -or -not (Test-Path (Join-Path $TomcatHome "bin\catalina.ba
 Write-Host "Tomcat:  $TomcatHome"
 
 # --- check the JDK -----------------------------------------------------------
-if (-not (Get-Command javac -ErrorAction SilentlyContinue)) {
+$javac = Get-Command javac -ErrorAction SilentlyContinue
+if (-not $javac) {
     Fail "javac not found. Install JDK 21 and make sure its bin folder is on PATH."
 }
+# catalina.bat refuses to start without JAVA_HOME or JRE_HOME. If neither is
+# set, ask Java where it is installed. (javac's own folder is not reliable:
+# Oracle's installer puts a "javapath" shortcut folder on PATH.)
+if (-not $env:JAVA_HOME -and -not $env:JRE_HOME) {
+    $javaExe = Join-Path (Split-Path -Parent $javac.Source) "java.exe"
+    # The settings are printed on stderr; under "Stop", PowerShell 5.1 would
+    # treat each stderr line as a terminating error, so relax it briefly.
+    $prevPref = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $homeLine = & $javaExe -XshowSettings:properties -version 2>&1 |
+                ForEach-Object { "$_" } |
+                Where-Object { $_ -match '^\s*java\.home\s*=' } | Select-Object -First 1
+    $ErrorActionPreference = $prevPref
+    if ($homeLine) {
+        $env:JAVA_HOME = ($homeLine -split '=', 2)[1].Trim()
+    } else {
+        $env:JAVA_HOME = Split-Path -Parent (Split-Path -Parent $javac.Source)
+    }
+}
+Write-Host "Java:    $(if ($env:JAVA_HOME) { $env:JAVA_HOME } else { $env:JRE_HOME })"
 
 # --- compile -----------------------------------------------------------------
 $classes = Join-Path $root "build\classes"
