@@ -121,10 +121,12 @@ src/main/java/com/hms/
   model/        plain data classes (Patient, Doctor, CVDScreening, ...)
   service/      CVDClient: the only class that talks to the Python service
   filter/       AuthenticationFilter: the login gate for every request
-  util/         DBConnection, PasswordUtil, CSRFUtil, HtmlUtil, AdminProvisioner
+  util/         AppConfig (settings lookup), DBConnection, PasswordUtil, CSRFUtil,
+                HtmlUtil, AdminProvisioner
 src/main/webapp/
-  *.jsp         21 pages (login, dashboard, patients, doctors, appointments,
-                billing, reports, CVD screening list / new screening / report, ...)
+  *.jsp         22 pages (login, dashboard, patients, doctors, appointments,
+                billing, reports, CVD screening list / new screening / report,
+                error page, ...)
   WEB-INF/      web.xml and the two bundled JARs (servlet API, MySQL driver)
 cvd-ai-service/
   api_server.py           FastAPI service: the one the web app uses
@@ -141,8 +143,12 @@ db/
   add_vessel_columns.sql    migration for older databases
 ml/                       training code, configs, experiment metrics and reports
 project-documentation/    architecture, setup, file-by-file guide, project report
-.env.example              template for every environment variable
-start_cvd_ai_service.bat  starts the AI service on Windows
+scripts/
+  setup-config.bat          one-time: writes the local settings file
+  run-web.bat               build, deploy and start the web app on Tomcat
+  run-ai.bat                start the AI service
+.env.example              template for every setting
+start_cvd_ai_service.bat  starts the AI service (calls scripts\run-ai.bat)
 ```
 
 ---
@@ -180,10 +186,30 @@ mysql -u root -p -e "USE hospital; SHOW TABLES;"
 
 It's best to create a dedicated MySQL user for the app rather than using `root`.
 
-### 3. Set the environment variables
+### 3. Configure the settings
 
-Every credential is read from the environment. Nothing is hard-coded. Copy
-`.env.example` and fill it in:
+Nothing is hard-coded. The easiest way is to run the one-time setup script, which
+asks for your MySQL username and password and generates a fresh API key:
+
+```bat
+scripts\setup-config.bat
+```
+
+It writes `%USERPROFILE%\.careconnect\careconnect.env`, **outside the project
+folder**, so credentials can never be committed. The web app and the AI service
+both read this file, so they always share the same API key, however Tomcat is
+started (terminal, Eclipse or the VS Code server connector). You can also write the
+file by hand: it uses the same `KEY=VALUE` format as `.env.example`.
+
+Each setting is resolved in this order, and the first match wins:
+
+1. an environment variable (for example `HMS_DB_USER`)
+2. a Java system property (for example `-Dhms.db.user=...`), for the web app only
+3. the `careconnect.env` file, looked for at `HMS_CONFIG_FILE` if set, then
+   `<tomcat>/conf/careconnect.env` (web app only), then
+   `%USERPROFILE%\.careconnect\careconnect.env`
+
+The settings:
 
 | Variable | Used by | Required | Purpose |
 |---|---|---|---|
@@ -194,18 +220,17 @@ Every credential is read from the environment. Nothing is hard-coded. Copy
 | `HMS_AI_API_URL` | Java | No | Defaults to `http://127.0.0.1:5000` |
 | `HMS_CORS_ORIGINS` | Python | No | Defaults to `http://localhost:8080,http://127.0.0.1:8080` |
 
-Java also accepts the system properties `hms.db.url`, `hms.db.user`,
-`hms.db.password`, `hms.ai.api.url` and `hms.ai.api.key` as `-D` flags. The order of
-precedence is environment variable, then system property, then default.
+The equivalent Java system properties are `hms.db.url`, `hms.db.user`,
+`hms.db.password`, `hms.ai.api.url` and `hms.ai.api.key`.
 
-Make sure Tomcat can actually see these variables. A variable set in one terminal is
-invisible to a Tomcat started from Eclipse or as a Windows service. Use one of:
+> **Why a file?** A variable set in one terminal is invisible to a Tomcat started
+> from Eclipse, from the VS Code server connector or as a Windows service. The
+> connector also launches Java directly, so `bin\setenv.bat` is not read either. The
+> config file works in every case. If you see `Database credentials not configured`
+> in the Tomcat log, the file is missing or in the wrong place; the message lists the
+> exact paths that were searched.
 
-- `<tomcat>/bin/setenv.bat`, which Tomcat reads on startup
-- Windows user environment variables, then restart Tomcat
-- the **Environment** tab of the server launch configuration in Eclipse
-
-Generate a strong API key with, for example:
+To write the file by hand, generate an API key with:
 
 ```bash
 python -c "import secrets; print(secrets.token_hex(32))"
@@ -213,18 +238,24 @@ python -c "import secrets; print(secrets.token_hex(32))"
 
 ### 4. Start the AI service
 
+First time only, create the Python environment:
+
 ```bash
 cd cvd-ai-service
 python -m venv .venv
 .venv\Scripts\activate            # Windows  (macOS/Linux: source .venv/bin/activate)
 pip install -r requirements.txt
-
-set HMS_AI_API_KEY=<same value as Tomcat>
-python api_server.py
 ```
 
-`start_cvd_ai_service.bat` does the same, but it points at a machine-specific virtual
-environment. Edit the Python path in it before using it.
+Then start the service from the project folder:
+
+```bat
+scripts\run-ai.bat
+```
+
+The script uses `cvd-ai-service\.venv` if it exists, then `%USERPROFILE%\cvd-env`,
+then whatever `python` is on your PATH. It reads the API key from `careconnect.env`.
+`start_cvd_ai_service.bat` in the project root still works; it now calls this script.
 
 When both models have loaded, the log ends with:
 
@@ -249,15 +280,27 @@ A `"degraded"` status means the prediction model did not load, which usually mea
 
 ### 5. Start the web application
 
-**Eclipse (recommended):**
+**From a terminal or VS Code (simplest):**
+
+```bat
+scripts\run-web.bat
+```
+
+This compiles the Java sources into `build\classes`, copies the app into
+`<tomcat>\webapps\HospitalManagementSystem` and runs Tomcat in that window (press
+Ctrl+C to stop). It finds Tomcat through `CATALINA_HOME` or by searching your user
+folder for `apache-tomcat-10.*`; to point at it explicitly, use
+`scripts\run-web.bat -TomcatHome "C:\path\to\apache-tomcat-10.1.57"`.
+
+If Tomcat is already running (for example from the VS Code **Community Server
+Connectors** extension), use `scripts\run-web.bat -NoStart` to rebuild and redeploy
+only; Tomcat reloads the app within a few seconds.
+
+**From Eclipse:**
 
 1. **File → Import → Existing Projects into Workspace**, and select this folder.
 2. Add an **Apache Tomcat v10.1** runtime under *Window → Preferences → Server → Runtime Environments*.
-3. If Eclipse reports unresolved classpath entries, re-point them at the two JARs in
-   `src/main/webapp/WEB-INF/lib/`. The committed `.classpath` uses absolute paths from
-   the original development machine.
-4. Set the environment variables on the server launch configuration.
-5. Right-click the project → **Run As → Run on Server**.
+3. Right-click the project → **Run As → Run on Server**.
 
 The app is then at `http://localhost:8080/HospitalManagementSystem/`, or at
 `http://localhost:8080/` if deployed as the root context.
@@ -265,8 +308,9 @@ The app is then at `http://localhost:8080/HospitalManagementSystem/`, or at
 ### 6. Create the first admin account
 
 There is no public sign-up, and registering staff requires an existing admin, so the
-first account is created from the command line. Set `HMS_DB_USER` and
-`HMS_DB_PASSWORD` in the same shell, then run:
+first account is created from the command line. Run `scripts\run-web.bat` once first
+(it produces `build\classes`). The tool reads the database settings from
+`careconnect.env`, so no extra setup is needed:
 
 ```bash
 java -cp "build\classes;src\main\webapp\WEB-INF\lib\*" ^
@@ -323,7 +367,7 @@ Each servlet handles one entity and dispatches on an `action` request parameter
 | Route | Purpose | Roles |
 |---|---|---|
 | `/LoginServlet` | Sign in (POST) | public |
-| `/LogoutServlet` | Sign out | any |
+| `/LogoutServlet` | Sign out | public |
 | `/RegisterServlet` | Create staff accounts | ADMIN |
 | `/PatientServlet` | Patient records | role-based |
 | `/DoctorServlet` | Doctor records | role-based |
@@ -408,7 +452,8 @@ feature experimental.
 | Destructive GET | `action=delete` refused on GET everywhere |
 | Unauthorised image access | Patient images under `/uploads/` require a logged-in session |
 | AI service abuse | API key (constant-time compare), localhost binding, rate limiting |
-| Secrets in source | All credentials come from environment variables or `-D` properties |
+| Secrets in source | Credentials come from environment variables, `-D` properties or a settings file outside the project |
+| Information leakage | 403, 404 and 500 show a plain error page; no stack traces reach the browser |
 
 ---
 
@@ -416,8 +461,8 @@ feature experimental.
 
 These are honest gaps in the current version:
 
-- **No build tool.** There is no Maven or Gradle, so builds rely on Eclipse, and
-  `.classpath` contains absolute paths from the development machine.
+- **No build tool.** There is no Maven or Gradle; `scripts\run-web.bat` and Eclipse
+  stand in for one.
 - **No automated test framework.** Java tests are `main()` programs under
   `com.hms.test`; the AI service has 13 checks in `test_ai_service.py`.
 - **No connection pool.** Each query opens a fresh `DriverManager` connection, which is
@@ -429,8 +474,6 @@ These are honest gaps in the current version:
   but it is not passed through to the report.
 - **The dashboard calls DAOs directly from the JSP.** This is the one place the MVC
   layering breaks; a `DashboardServlet` would fix it.
-- **Error pages mask errors.** `web.xml` maps 404, 403 and 500 to the login page, so a
-  real error can look like a logout. Check the Tomcat console.
 - **The AI is not clinically validated.** It uses a single-source cohort (mBRSET), one
   camera model (Phelcom Eyer) and historical rather than prospective labels.
 
@@ -440,12 +483,12 @@ These are honest gaps in the current version:
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
+| Login page says "Sign-in is unavailable … cannot reach its database" | Settings not found, wrong password, or MySQL not running | Run `scripts\setup-config.bat`; read the `[DBConnection]` line in the Tomcat log, which lists the paths searched |
 | Badge shows "AI Offline" | Service not running, or `/health` reports `degraded` (weights missing) | `curl http://127.0.0.1:5000/health` |
-| Every AI request returns 401 | `HMS_AI_API_KEY` differs between Tomcat and Python | Set the identical value in both |
-| Every AI request returns 503 | `HMS_AI_API_KEY` not set for Python | Set it in the shell before `python api_server.py` |
-| All lists are empty, no error | DB credentials not visible to Tomcat | Look for `[DBConnection] Error` in the Tomcat log |
+| Every AI request returns 401 | An environment variable overrides the shared key on one side only | Remove the stray `HMS_AI_API_KEY` variable, or set it identically for both |
+| Every AI request returns 503 | No API key configured for the Python service | Run `scripts\setup-config.bat`, then restart `scripts\run-ai.bat` |
 | `?error=save_failed` after an analysis | `cvd_screenings` is missing columns | Re-run `db/cvd_screenings_schema.sql` (it adds them) |
-| Everything redirects to login | No session, or a real error masked by `web.xml` | Check the Tomcat console |
+| "Something went wrong" (500) page | An unexpected server error | The cause is in the Tomcat console or `logs\catalina.*.log` |
 | All servlets 404 after deploy | Running on Tomcat 9 or earlier | Use Tomcat 10.1+ (Jakarta namespace) |
 | `ModuleNotFoundError: fastapi` | Old environment | `pip install -r cvd-ai-service/requirements.txt` |
 | Report results are all Negative / No DR | The AI response could not be parsed | Look for `[CVDClient] JSON parsing fallback` in the log |

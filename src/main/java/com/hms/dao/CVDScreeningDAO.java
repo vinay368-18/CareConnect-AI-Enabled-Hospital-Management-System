@@ -204,8 +204,14 @@ public class CVDScreeningDAO {
         return 0;
     }
 
+    /**
+     * Number of screenings whose experimental CVD head was Positive.
+     * Shown as "Elevated CVD Markers (Exp)". The AI service never emits a
+     * 'High Risk' risk_level (every result is labelled as requiring clinical
+     * review), so the prediction column is the meaningful signal.
+     */
     public int getHighRiskCount() {
-        String sql = "SELECT COUNT(*) FROM cvd_screenings WHERE risk_level = 'High Risk'";
+        String sql = "SELECT COUNT(*) FROM cvd_screenings WHERE cvd_prediction = 'Positive'";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {

@@ -9,7 +9,6 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
-import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -18,8 +17,10 @@ import jakarta.servlet.http.HttpSession;
  * Centralized authentication filter.
  * Intercepts all requests and enforces session-based authentication
  * for protected resources.
+ *
+ * Registered in WEB-INF/web.xml only. It must not also carry @WebFilter,
+ * or the container creates two instances and runs the check twice.
  */
-@WebFilter("/*")
 public class AuthenticationFilter implements Filter {
 
     @Override

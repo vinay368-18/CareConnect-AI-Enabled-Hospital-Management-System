@@ -35,6 +35,48 @@ except ImportError:
 logger = logging.getLogger("cvd-api")
 logging.basicConfig(level=logging.INFO)
 
+
+# ---------------------------------------------------------------------------
+# Local configuration file (shared with the Java web application)
+# ---------------------------------------------------------------------------
+# Settings already present in the environment always win. Missing ones are
+# filled from careconnect.env (KEY=VALUE lines, same format as .env.example),
+# looked up at $HMS_CONFIG_FILE, then ~/.careconnect/careconnect.env.
+# The file lives outside the project, so the API key never enters Git.
+def _load_local_config() -> Optional[Path]:
+    candidates = []
+    explicit = os.environ.get("HMS_CONFIG_FILE", "").strip()
+    if explicit:
+        candidates.append(Path(explicit))
+    candidates.append(Path.home() / ".careconnect" / "careconnect.env")
+    for path in candidates:
+        if not path.is_file():
+            continue
+        try:
+            text = path.read_text(encoding="utf-8-sig")
+        except OSError as exc:
+            logger.warning(f"[CVD API] Could not read config file {path}: {exc}")
+            continue
+        for raw_line in text.splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if line.startswith("export "):
+                line = line[7:].strip()
+            key, sep, value = line.partition("=")
+            key, value = key.strip(), value.strip()
+            if not sep or not key:
+                continue
+            if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+                value = value[1:-1]
+            os.environ.setdefault(key, value)
+        logger.info(f"[CVD API] Loaded settings from {path}")
+        return path
+    return None
+
+
+_load_local_config()
+
 # ---------------------------------------------------------------------------
 # API Key Authentication
 # ---------------------------------------------------------------------------

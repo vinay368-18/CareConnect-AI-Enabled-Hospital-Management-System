@@ -255,6 +255,48 @@
 
             <%
 
+                } else if ("db_unavailable".equals(error)) {
+
+            %>
+
+                <div style="
+                    background:#fde8e8;
+                    color:#9b1c1c;
+                    border-left:4px solid #f05252;
+                    padding:12px 16px;
+                    border-radius:8px;
+                    margin-bottom:20px;
+                    font-size:14px;
+                ">
+
+                    Sign-in is unavailable because the system cannot reach its database.
+                    Administrator: check that MySQL is running and that the database
+                    settings (HMS_DB_USER, HMS_DB_PASSWORD) are configured.
+
+                </div>
+
+            <%
+
+                } else if ("unauthorized".equals(error)) {
+
+            %>
+
+                <div style="
+                    background:#fef3c7;
+                    color:#92400e;
+                    border-left:4px solid #f59e0b;
+                    padding:12px 16px;
+                    border-radius:8px;
+                    margin-bottom:20px;
+                    font-size:14px;
+                ">
+
+                    Please sign in to continue.
+
+                </div>
+
+            <%
+
                 } else if ("logged_out".equals(msg)) {
 
             %>

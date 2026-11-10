@@ -1,11 +1,4 @@
 @echo off
-
-echo ========================================================
-echo Starting CareConnect CVD AI Diagnostic Microservice...
-echo Python Environment: C:\Users\vinay\cvd-env
-echo Port: 5000
-echo ========================================================
-
-"C:\Users\vinay\cvd-env\Scripts\python.exe" "%~dp0cvd-ai-service\api_server.py"
-
-pause
+rem Kept for compatibility. The launcher now lives in scripts\run-ai.bat, which
+rem finds Python automatically and reads the API key from careconnect.env.
+call "%~dp0scripts\run-ai.bat" %*

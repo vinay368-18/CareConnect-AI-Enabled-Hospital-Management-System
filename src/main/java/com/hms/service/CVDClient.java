@@ -1,6 +1,7 @@
 package com.hms.service;
 
 import com.hms.model.CVDScreening;
+import com.hms.util.AppConfig;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -47,20 +48,14 @@ public class CVDClient {
         return httpClient;
     }
 
+    /** Environment variable, then -Dhms.ai.api.url, then careconnect.env (see AppConfig). */
     private static String resolveBaseUrl() {
-        String env = System.getenv("HMS_AI_API_URL");
-        if (env != null && !env.trim().isEmpty()) return env.trim();
-        String prop = System.getProperty("hms.ai.api.url");
-        if (prop != null && !prop.trim().isEmpty()) return prop.trim();
-        return DEFAULT_API_URL;
+        return AppConfig.getOrDefault("HMS_AI_API_URL", "hms.ai.api.url", DEFAULT_API_URL);
     }
 
+    /** Environment variable, then -Dhms.ai.api.key, then careconnect.env (see AppConfig). */
     private static String resolveApiKey() {
-        String env = System.getenv("HMS_AI_API_KEY");
-        if (env != null && !env.trim().isEmpty()) return env.trim();
-        String prop = System.getProperty("hms.ai.api.key");
-        if (prop != null && !prop.trim().isEmpty()) return prop.trim();
-        return "";
+        return AppConfig.getOrDefault("HMS_AI_API_KEY", "hms.ai.api.key", "");
     }
 
     public String getApiKey() { return apiKey; }

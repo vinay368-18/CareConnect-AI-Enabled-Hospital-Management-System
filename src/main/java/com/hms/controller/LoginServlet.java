@@ -40,7 +40,19 @@ public class LoginServlet extends HttpServlet {
             return;
         }
 
-        User user = userDAO.login(username.trim(), password);
+        User user;
+        try {
+            user = userDAO.login(username.trim(), password);
+        } catch (RuntimeException e) {
+            // DBConnection returns null when credentials are missing or MySQL
+            // is unreachable; the DAO then fails. Tell the user instead of
+            // surfacing a generic 500.
+            System.err.println("[LoginServlet] Login failed because the database is unavailable: " + e);
+            response.sendRedirect(
+                request.getContextPath() + "/login.jsp?error=db_unavailable"
+            );
+            return;
+        }
 
         if (user != null) {
             // Prevent session fixation

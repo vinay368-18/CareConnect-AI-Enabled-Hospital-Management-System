@@ -25,20 +25,16 @@ public class DBConnection {
     }
 
     /**
-     * Resolves configuration setting from environment variables or system properties.
-     * When retrieving password settings, blank or empty values (e.g., "") return "" rather than null,
-     * ensuring empty password configurations do not trigger null credential errors.
+     * Resolves a setting via AppConfig (environment variable, then system
+     * property, then the local careconnect.env file).
+     * A missing password resolves to "" so a passwordless local MySQL works.
      */
     private static String getSetting(String envName, String propName) {
-        String val = System.getenv(envName);
+        String val = AppConfig.get(envName, propName);
         if (val != null) {
-            return val.trim();
+            return val;
         }
-        val = System.getProperty(propName);
-        if (val != null) {
-            return val.trim();
-        }
-        if (ENV_PASSWORD.equals(envName) || PROP_PASSWORD.equals(propName)) {
+        if (ENV_PASSWORD.equals(envName)) {
             return "";
         }
         return null;
@@ -64,7 +60,9 @@ public class DBConnection {
         String pass = getSetting(ENV_PASSWORD, PROP_PASSWORD);
 
         if (user == null || user.trim().isEmpty() || pass == null) {
-            System.err.println("[DBConnection] Error: Database credentials not configured. Please set HMS_DB_USER and HMS_DB_PASSWORD environment variables.");
+            System.err.println("[DBConnection] Error: Database credentials not configured. "
+                    + "Set HMS_DB_USER and HMS_DB_PASSWORD as environment variables, or put them in "
+                    + AppConfig.CONFIG_FILE_NAME + " at one of: " + AppConfig.searchLocations());
             return null;
         }
 
